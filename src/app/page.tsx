@@ -1,69 +1,70 @@
-import Image from "next/image";
+import { ShoppingBag, Truck, ShieldCheck } from "lucide-react";
+import { brand } from "@/config/brand";
+import { formatMoney } from "@/lib/money";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
-export default function Home() {
+export default function ThemePreviewPage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <main className="mx-auto max-w-5xl px-6 py-16">
+      <Badge variant="secondary" className="mb-6">
+        Theme preview – replaced in Step 3
+      </Badge>
+
+      <h1 className="text-5xl font-semibold sm:text-6xl">{brand.name}</h1>
+      <p className="mt-4 max-w-xl text-lg text-muted-foreground">{brand.tagline}</p>
+
+      <div className="mt-8 flex flex-wrap gap-3">
+        <Button size="lg" className="bg-primary hover:bg-primary-hover">
+          <ShoppingBag className="mr-2 size-4" /> Shop now
+        </Button>
+        <Button size="lg" variant="outline">
+          View lookbook
+        </Button>
+      </div>
+
+      <div className="mt-14 grid gap-6 sm:grid-cols-3">
+        <Card className="shadow-soft">
+          <CardContent className="space-y-2 p-6">
+            <div className="aspect-[4/5] rounded-md bg-secondary" />
+            <p className="font-medium">Sample linen shirt</p>
+            <div className="flex items-baseline gap-2">
+              <span className="font-semibold text-primary">{formatMoney(38000)}</span>
+              <span className="text-sm text-muted-foreground line-through">
+                {formatMoney(45000)}
+              </span>
+            </div>
+            <Badge className="bg-success text-white">In stock</Badge>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-soft">
+          <CardContent className="space-y-2 p-6">
+            <Truck className="size-6 text-primary" />
+            <h2 className="text-2xl font-semibold">Fast delivery</h2>
+            <p className="text-sm text-muted-foreground">
+              Our own delivery team and trusted couriers.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-soft">
+          <CardContent className="space-y-3 p-6">
+            <ShieldCheck className="size-6 text-primary" />
+            <div className="space-y-1.5">
+              <Label htmlFor="phone">Phone</Label>
+              <Input id="phone" placeholder="+95 9 …" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <p lang="my" className="mt-12 text-muted-foreground">
+        မြန်မာဘာသာ စာလုံးပြသမှု စမ်းသပ်ချက် – Burmese font test
+      </p>
+    </main>
   );
 }
