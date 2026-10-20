@@ -8,26 +8,29 @@ datasource db {
 }
 
 model User {
-    id               String      @id
-    name             String
-    email            String
-    emailVerified    Boolean     @default(false)
-    image            String?
-    twoFactorEnabled Boolean?    @default(false)
-    role             String?
-    banned           Boolean?    @default(false)
-    banReason        String?
-    banExpires       DateTime?
-    phone            String?
-    locale           String?     @default("en")
-    sessions         Session[]
-    accounts         Account[]
-    twofactors       TwoFactor[]
-    addresses        Address[]
-    cart             Cart?
-    wishlist         Wishlist?
-    reviews          Review[]
-    orders           Order[]
+    id                     String                  @id
+    name                   String
+    email                  String
+    emailVerified          Boolean                 @default(false)
+    image                  String?
+    twoFactorEnabled       Boolean?                @default(false)
+    role                   String?
+    banned                 Boolean?                @default(false)
+    banReason              String?
+    banExpires             DateTime?
+    phone                  String?
+    locale                 String?                 @default("en")
+    sessions               Session[]
+    accounts               Account[]
+    twofactors             TwoFactor[]
+    addresses              Address[]
+    cart                   Cart?
+    wishlist               Wishlist?
+    reviews                Review[]
+    orders                 Order[]
+    rider                  Rider?
+    notifications          Notification[]
+    notificationPreference NotificationPreference?
 
     createdAt DateTime  @default(now()) @map("created_at")
     updatedAt DateTime  @updatedAt @map("updated_at")
@@ -591,6 +594,8 @@ model Order {
     events           OrderEvent[]
     couponRedemption CouponRedemption?
     reservations     InventoryReservation[]
+    shipments        Shipment[]
+    codCollections   CodCollection[]
 
     @@index([userId, createdAt])
     @@index([status, createdAt])
@@ -832,4 +837,365 @@ model InventoryReservation {
     @@index([variantId, status])
     @@index([orderId])
     @@map("inventory_reservations")
+}
+
+// Delivery
+
+enum FulfillmentType {
+    IN_HOUSE
+    THIRD_PARTY
+}
+
+enum ShipmentStatus {
+    PENDING
+    SHIPPED
+    IN_TRANSIT
+    OUT_FOR_DELIVERY
+    DELIVERED
+    DELIVERY_FAILED
+    RETURNED_TO_SENDER
+    CANCELLED
+}
+
+enum TrackingSource {
+    SYSTEM
+    ADMIN
+    RIDER
+    CARRIER_WEBHOOK
+    CARRIER_POLL
+    SIMULATED
+}
+
+enum CodStatus {
+    PENDING
+    COLLECTED
+    RECONCILED
+    DISCREPANCY
+}
+
+enum RiderStatus {
+    OFF_DUTY
+    AVAILABLE
+    ON_DELIVERY
+}
+
+model Carrier {
+    id                  String          @id @default(cuid())
+    code                String          @unique // "in-house", "mock-express"
+    name                String
+    type                FulfillmentType
+    trackingUrlTemplate String?         @map("tracking_url_template") // "https://example.com/track/{trackingNumber}"
+    supportPhone        String?         @map("support_phone")
+    isActive            Boolean         @default(true) @map("is_active")
+
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    methods   ShippingMethod[]
+    shipments Shipment[]
+
+    @@map("carriers")
+}
+
+model DeliveryZone {
+    id        String  @id @default(cuid())
+    name      String
+    region    String // "Yangon Region"
+    township  String // "Bahan"
+    isActive  Boolean @default(true) @map("is_active")
+    sortOrder Int     @default(0) @map("sort_order")
+
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    rates  ShippingRate[]
+    riders RiderZone[]
+
+    @@unique([region, township])
+    @@map("delivery_zones")
+}
+
+model ShippingMethod {
+    id           String          @id @default(cuid())
+    code         String          @unique // stored on orders as a snapshot
+    name         String
+    description  String?
+    type         FulfillmentType
+    carrierId    String?         @map("carrier_id")
+    codAvailable Boolean         @default(true) @map("cod_available")
+    etaMinDays   Int             @default(1) @map("eta_min_days")
+    etaMaxDays   Int             @default(3) @map("eta_max_days")
+    isActive     Boolean         @default(true) @map("is_active")
+    sortOrder    Int             @default(0) @map("sort_order")
+
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    carrier Carrier?       @relation(fields: [carrierId], references: [id], onDelete: Restrict)
+    rates   ShippingRate[]
+
+    @@index([isActive, sortOrder])
+    @@map("shipping_methods")
+}
+
+model ShippingRate {
+    id               String   @id @default(cuid())
+    methodId         String   @map("method_id")
+    zoneId           String   @map("zone_id")
+    fee              Decimal  @db.Decimal(14, 2)
+    freeShippingOver Decimal? @map("free_shipping_over") @db.Decimal(14, 2)
+
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    method ShippingMethod @relation(fields: [methodId], references: [id], onDelete: Cascade)
+    zone   DeliveryZone   @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+
+    @@unique([methodId, zoneId])
+    @@index([zoneId])
+    @@map("shipping_rates")
+}
+
+model Rider {
+    id           String      @id @default(cuid())
+    userId       String      @unique @map("user_id")
+    phone        String
+    vehicleType  String?     @map("vehicle_type") // "Motorbike", "Bicycle"
+    vehiclePlate String?     @map("vehicle_plate")
+    status       RiderStatus @default(OFF_DUTY)
+    isActive     Boolean     @default(true) @map("is_active")
+
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    user           User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+    zones          RiderZone[]
+    shipments      Shipment[]
+    codCollections CodCollection[]
+
+    @@index([isActive, status])
+    @@map("riders")
+}
+
+model RiderZone {
+    riderId String @map("rider_id")
+    zoneId  String @map("zone_id")
+
+    rider Rider        @relation(fields: [riderId], references: [id], onDelete: Cascade)
+    zone  DeliveryZone @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+
+    @@id([riderId, zoneId])
+    @@index([zoneId])
+    @@map("rider_zones")
+}
+
+model Shipment {
+    id                  String          @id @default(cuid())
+    orderId             String          @map("order_id")
+    type                FulfillmentType
+    status              ShipmentStatus  @default(PENDING)
+    carrierId           String?         @map("carrier_id")
+    riderId             String?         @map("rider_id")
+    trackingNumber      String?         @map("tracking_number")
+    carrierReference    String?         @map("carrier_reference") // carrier's own internal reference
+    estimatedDeliveryAt DateTime?       @map("estimated_delivery_at")
+    shippedAt           DateTime?       @map("shipped_at")
+    deliveredAt         DateTime?       @map("delivered_at")
+    deliveryAttempts    Int             @default(0) @map("delivery_attempts")
+    lastFailureReason   String?         @map("last_failure_reason")
+    deliveryNotes       String?         @map("delivery_notes") @db.Text
+    proofOfDeliveryUrl  String?         @map("proof_of_delivery_url")
+    receivedBy          String?         @map("received_by") // who signed for the parcel
+    codAmount           Decimal         @default(0) @map("cod_amount") @db.Decimal(14, 2) // cash to collect, 0 if prepaid
+
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    order         Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+    carrier       Carrier?        @relation(fields: [carrierId], references: [id], onDelete: Restrict)
+    rider         Rider?          @relation(fields: [riderId], references: [id], onDelete: Restrict)
+    events        TrackingEvent[]
+    codCollection CodCollection?
+
+    @@unique([carrierId, trackingNumber])
+    @@index([orderId])
+    @@index([status, createdAt])
+    @@index([riderId, status])
+    @@index([carrierId, status])
+    @@map("shipments")
+}
+
+// Append-only timeline. Rows are only ever added, so there is no updated_at.
+model TrackingEvent {
+    id             String         @id @default(cuid())
+    shipmentId     String         @map("shipment_id")
+    status         ShipmentStatus
+    title          String
+    description    String?
+    location       String?
+    failureReason  String?        @map("failure_reason")
+    occurredAt     DateTime       @map("occurred_at")
+    source         TrackingSource
+    isSimulated    Boolean        @default(false) @map("is_simulated")
+    carrierEventId String?        @map("carrier_event_id") // the carrier's own event id, used for idempotency
+    actorId        String?        @map("actor_id") // plain text on purpose
+    rawPayload     Json?          @map("raw_pay_load")
+
+    createdAt DateTime @default(now()) @map("created_at")
+
+    shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+    @@unique([shipmentId, carrierEventId])
+    @@index([shipmentId, occurredAt])
+    @@map("tracking_events")
+}
+
+model CodCollection {
+    id              String    @id @default(cuid())
+    shipmentId      String    @unique @map("shipment_id")
+    orderId         String    @map("order_id")
+    riderId         String?   @map("rider_id")
+    amountDue       Decimal   @map("amount_due") @db.Decimal(14, 2)
+    amountCollected Decimal   @default(0) @map("amount_collected") @db.Decimal(14, 2)
+    status          CodStatus @default(PENDING)
+    collectedAt     DateTime? @map("collected_at")
+    reconciledAt    DateTime? @map("reconciled_at")
+    reconciledBy    String?   @map("reconciled_by") // plain text on purpose
+    note            String?
+
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+    order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+    rider    Rider?   @relation(fields: [riderId], references: [id], onDelete: Restrict)
+
+    @@index([status, createdAt])
+    @@index([riderId, status])
+    @@index([orderId])
+    @@map("cod_collections")
+}
+
+// Notifications
+
+enum OutboxChannel {
+    EMAIL
+    SMS
+}
+
+enum OutboxStatus {
+    PENDING
+    SENT
+    FAILED
+    SKIPPED
+}
+
+model Notification {
+    id        String    @id @default(cuid())
+    userId    String    @map("user_id")
+    type      String // e.g. ORDER_PLACED, ORDER_SHIPPED, OUT_FOR_DELIVERY
+    title     String
+    body      String?
+    link      String?
+    data      Json?
+    dedupeKey String?   @unique @map("dedupe_key") // prevents duplicates when webhooks are retried
+    readAt    DateTime? @map("read_at")
+
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId, readAt, createdAt])
+    @@map("notifications")
+}
+
+model NotificationPreference {
+    id                String  @id @default(cuid())
+    userId            String  @unique @map("user_id")
+    emailOrderUpdates Boolean @default(true) @map("email_order_updates")
+    emailPromotions   Boolean @default(false) @map("email_promotions")
+    smsOrderUpdates   Boolean @default(false) @map("sms_order_updates")
+
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@map("notification_preferences")
+}
+
+// Outbox pattern: we save the message in the same transaction as the business
+// change, then a worker sends it and retries on failure.
+model OutboxMessage {
+    id            String        @id @default(cuid())
+    channel       OutboxChannel
+    recipient     String
+    subject       String?
+    body          String        @db.Text
+    status        OutboxStatus  @default(PENDING)
+    attempts      Int           @default(0)
+    lastError     String?       @map("last_error")
+    nextAttemptAt DateTime      @default(now()) @map("next_attempt_at")
+    sentAt        DateTime?     @map("sent_at")
+    dedupeKey     String?       @unique @map("dedupe_key")
+
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    @@index([status, nextAttemptAt])
+    @@map("outbox_messages")
+}
+
+// Audit log (append-only) and store settings (single row)
+
+model AuditLog {
+    id         String  @id @default(cuid())
+    actorId    String? @map("actor_id") // plain text on purpose
+    actorRole  String? @map("actor_role")
+    action     String // e.g. "order.cancel", "shipment.update_status"
+    entityType String  @map("entity_type") // e.g. "Order"
+    entityId   String? @map("entity_id")
+    summary    String?
+    before     Json?
+    after      Json?
+    ipAddress  String? @map("ip_address")
+    userAgent  String? @map("user_agent")
+
+    createdAt DateTime @default(now()) @map("created_at")
+
+    @@index([entityType, entityId])
+    @@index([actorId, createdAt])
+    @@index([action, createdAt])
+    @@index([createdAt])
+    @@map("audit_logs")
+}
+
+model StoreSettings {
+    id                     String  @id @default("default")
+    currency               String  @default("MMK") @db.VarChar(3)
+    locale                 String  @default("en")
+    timeZone               String  @default("Asia/Yangon") @map("time_zone")
+    taxEnabled             Boolean @default(false) @map("tax_enabled")
+    taxRate                Decimal @default(0) @map("tax_rate") @db.Decimal(5, 2) // percent
+    taxLabel               String  @default("Commercial tax") @map("tax_label")
+    guestCheckoutEnabled   Boolean @default(true) @map("guest_checkout_enabled")
+    codEnabled             Boolean @default(true) @map("cod_enabled")
+    manualTransferEnabled  Boolean @default(true) @map("manual_transfer_enabled")
+    onlineGatewayEnabled   Boolean @default(false) @map("online_gateway_enabled")
+    reservationMinutes     Int     @default(15) @map("reservation_minutes")
+    unpaidOrderExpiryHours Int     @default(24) @map("unpaid_order_expiry_hours")
+    returnWindowDays       Int     @default(7) @map("return_window_days")
+    supportPhone           String? @map("support_phone")
+    supportEmail           String? @map("support_email")
+    manualTransferAccounts Json?   @map("manual_transfer_accounts") // [{ channel, accountName, accountNumber }]
+    shippingPolicy         String? @map("shipping_policy") @db.Text
+    returnPolicy           String? @map("return_policy") @db.Text
+    privacyPolicy          String? @map("privacy_policy") @db.Text
+    terms                  String? @db.Text
+
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    @@map("store_settings")
 }

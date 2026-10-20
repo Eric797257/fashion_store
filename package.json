@@ -20,6 +20,7 @@
     "db:catalog-check": "tsx scripts/catalog-check.ts",
     "db:shopper-check": "tsx scripts/shopper-check.ts",
     "db:orders-check": "tsx scripts/orders-check.ts",
+    "db:delivery-check": "tsx scripts/delivery-check.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
