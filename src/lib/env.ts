@@ -34,7 +34,10 @@ const schema = z.object({
   CARRIER_MODE: z.enum(["mock", "live"]).default("mock"),
   CARRIER_WEBHOOK_SECRET: optional,
 
-  STORAGE_DRIVER: z.enum(["local", "s3"]).default("local"),
+  STORAGE_DRIVER: z.enum(["local", "cloudinary", "s3"]).default("local"),
+  CLOUDINARY_CLOUD_NAME: optional,
+  CLOUDINARY_API_KEY: optional,
+  CLOUDINARY_API_SECRET: optional,
 });
 
 const parsed = schema.safeParse(process.env);
@@ -47,6 +50,15 @@ if (!parsed.success) {
 }
 
 const data = parsed.data;
+
+if (
+  data.STORAGE_DRIVER === "cloudinary" &&
+  !(data.CLOUDINARY_CLOUD_NAME && data.CLOUDINARY_API_KEY && data.CLOUDINARY_API_SECRET)
+) {
+  throw new Error(
+    "STORAGE_DRIVER=cloudinary needs CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET",
+  );
+}
 
 // Extra rules that only apply in production
 if (data.NODE_ENV === "production") {

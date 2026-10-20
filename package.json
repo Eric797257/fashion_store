@@ -17,6 +17,9 @@
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset",
     "db:check": "tsx scripts/db-check.ts",
+    "db:catalog-check": "tsx scripts/catalog-check.ts",
+    "db:shopper-check": "tsx scripts/shopper-check.ts",
+    "db:orders-check": "tsx scripts/orders-check.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

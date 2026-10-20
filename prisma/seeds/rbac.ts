@@ -17,7 +17,7 @@ export async function seedRbac(prisma: PrismaClient) {
   }
 
   const allPermissions = await prisma.permission.findMany({
-    select: { id: true, key: true }, 
+    select: { id: true, key: true },
   });
   const idByKey = new Map(allPermissions.map((p) => [p.key, p.id]));
 
