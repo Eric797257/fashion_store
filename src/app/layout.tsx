@@ -1,31 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Cormorant_Garamond, Noto_Sans_Myanmar } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale } from "next-intl/server";
 import { brand, themeStyle } from "@/config/brand";
+
+import "@fontsource-variable/inter";
+import "@fontsource/cormorant-garamond/500.css";
+import "@fontsource/cormorant-garamond/600.css";
+import "@fontsource/cormorant-garamond/700.css";
+import "@fontsource/noto-sans-myanmar/400.css";
+import "@fontsource/noto-sans-myanmar/500.css";
+import "@fontsource/noto-sans-myanmar/600.css";
+import "@fontsource/noto-sans-myanmar/700.css";
 import "./globals.css";
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
-const cormorant = Cormorant_Garamond({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  variable: "--font-cormorant",
-  display: "swap",
-});
-
-const myanmar = Noto_Sans_Myanmar({
-  subsets: ["myanmar"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-myanmar",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
-  title: { default: `${brand.name} - ${brand.tagline}`, template: `%s | ${brand.name}` },
+  title: { default: `${brand.name} – ${brand.tagline}`, template: `%s | ${brand.name}` },
   description: brand.description,
 };
 
@@ -35,15 +25,16 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+// The language comes from a cookie, so this layout can't be prerendered as a static shell.
+export const instant = false;
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getLocale();
+
   return (
-    <html
-      lang={brand.locale.default}
-      style={themeStyle()}
-      className={`${inter.variable} ${cormorant.variable} ${myanmar.variable}`}
-    >
+    <html lang={locale} style={themeStyle()}>
       <body>
-        {children}
+        <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </body>
     </html>
   );

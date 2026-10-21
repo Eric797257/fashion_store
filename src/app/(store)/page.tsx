@@ -9,9 +9,9 @@ import { Label } from "@/components/ui/label";
 
 export default function ThemePreviewPage() {
   return (
-    <main className="mx-auto max-w-5xl px-6 py-16">
+    <div className="mx-auto max-w-5xl px-6 py-16">
       <Badge variant="secondary" className="mb-6">
-        Theme preview – replaced in Step 3
+        Theme preview - replaced in Step 3
       </Badge>
 
       <h1 className="text-5xl font-semibold sm:text-6xl">{brand.name}</h1>
@@ -30,7 +30,7 @@ export default function ThemePreviewPage() {
         <Card className="shadow-soft">
           <CardContent className="space-y-2 p-6">
             <div className="aspect-[4/5] rounded-md bg-secondary" />
-            <p className="font-medium">Sample linen shirt</p>
+            <p className="font-medium">Sample linen shirt</p> 
             <div className="flex items-baseline gap-2">
               <span className="font-semibold text-primary">{formatMoney(38000)}</span>
               <span className="text-sm text-muted-foreground line-through">
@@ -63,8 +63,8 @@ export default function ThemePreviewPage() {
       </div>
 
       <p lang="my" className="mt-12 text-muted-foreground">
-        မြန်မာဘာသာ စာလုံးပြသမှု စမ်းသပ်ချက် – Burmese font test
+        မြန်မာဘာသာ စာလုံးပြသမှု စမ်းသပ်ချက် - Burmese font test
       </p>
-    </main>
+    </div>
   );
 }

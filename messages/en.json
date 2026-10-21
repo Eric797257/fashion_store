@@ -1,0 +1,47 @@
+{
+  "Common": {
+    "skipToContent": "Skip to main content",
+    "close": "Close",
+    "language": "Language"
+  },
+  "Header": {
+    "announcement": "Cash on delivery available · Fast delivery across Myanmar",
+    "searchLabel": "Search products",
+    "searchPlaceholder": "Search products…",
+    "search": "Search",
+    "account": "Account",
+    "wishlist": "Wishlist",
+    "cart": "Cart",
+    "menu": "Menu",
+    "openMenu": "Open menu",
+    "mainNavigation": "Main navigation",
+    "shopAll": "Shop all",
+    "viewAll": "View all",
+    "trackOrder": "Track order",
+    "signIn": "Sign in",
+    "categories": "Categories"
+  },
+  "Footer": {
+    "tagline": "Modern fashion, made for everyday.",
+    "trust1": "Cash on delivery",
+    "trust2": "Our own delivery team and trusted couriers",
+    "trust3": "Track your order status",
+    "shop": "Shop",
+    "customerCare": "Customer care",
+    "company": "Company",
+    "trackOrder": "Track order",
+    "shippingPolicy": "Shipping policy",
+    "returnPolicy": "Return policy",
+    "contact": "Contact us",
+    "about": "About us",
+    "privacyPolicy": "Privacy policy",
+    "terms": "Terms & conditions",
+    "followUs": "Follow us",
+    "rights": "All rights reserved."
+  },
+  "NotFound": {
+    "title": "Page not found",
+    "body": "The page you are looking for does not exist or has moved.",
+    "home": "Back to home"
+  }
+}
