@@ -21,6 +21,9 @@
     "db:shopper-check": "tsx scripts/shopper-check.ts",
     "db:orders-check": "tsx scripts/orders-check.ts",
     "db:delivery-check": "tsx scripts/delivery-check.ts",
+    "email:check": "tsx scripts/email-check.ts",
+    "auth:check": "tsx scripts/auth-check.ts",
+    "user:set-role": "tsx scripts/set-role.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
