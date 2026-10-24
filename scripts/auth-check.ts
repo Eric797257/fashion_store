@@ -57,6 +57,27 @@ async function main() {
     firstBlocked ? `first blocked at attempt ${firstBlocked}` : "never blocked",
   );
 
+  // 5) Password-reset requests are rate limited too (10 per hour, so the 11th is blocked)
+  const resetIp = testIp();
+  let resetBlocked = 0;
+  for (let i = 1; i <= 13; i++) {
+    const res = await post(
+      "/request-password-reset",
+      { email: "nobody@example.test", redirectTo: `${BASE}/reset-password` },
+      resetIp,
+    );
+    if (res.status === 429 && resetBlocked === 0) resetBlocked = i;
+  }
+  report(
+    "Password-reset request rate limit blocks the 11th attempt",
+    resetBlocked === 11,
+    resetBlocked ? `first blocked at attempt ${resetBlocked}` : "never blocked",
+  );
+
+  // 6) Weak password on reset is rejected by the server
+  const weakReset = await post("/reset-password", { newPassword: "abc", token: "x" }, testIp());
+  report("Weak password on reset rejected by the server", weakReset.status === 400, `status ${weakReset.status}`);
+
   process.exit(failed ? 1 : 0);
 }
 

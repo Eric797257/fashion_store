@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -15,6 +15,7 @@ import { signUpSchema, type SignUpValues } from "@/validation/auth";
 export function SignUpForm({ next }: { next: string }) {
   const t = useTranslations("Auth");
   const router = useRouter();
+  const locale = useLocale();
   const [formError, setFormError] = useState<string | null>(null);
 
   const {
@@ -34,23 +35,19 @@ export function SignUpForm({ next }: { next: string }) {
       name: values.name,
       email: values.email,
       password: values.password,
+      locale, // so our emails are sent in the visitor's language
+      callbackURL: new URL("/verify-email/complete", window.location.origin).toString(),
     });
 
     if (error) {
-      const status = error.status ?? 0;
-      const code = String(error.code ?? "");
       setFormError(
-        status === 429
-          ? t("errors.tooManyRequests")
-          : code.includes("USER_ALREADY_EXISTS")
-            ? t("errors.emailTaken")
-            : t("errors.generic"),
+        error.status === 429 ? t("errors.tooManyRequests") : t("errors.generic"),
       );
       return;
     }
 
-    router.replace(next);
-    router.refresh();
+    // No session yet: the email must be verified first
+    router.replace(`/verify-email?email=${encodeURIComponent(values.email)}`);
   }
 
   return (
@@ -60,13 +57,13 @@ export function SignUpForm({ next }: { next: string }) {
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="mt-6 space-y-4">
         <FormAlert message={formError} />
-        <TextField 
+        <TextField
           label={t("name")}
           autoComplete="name"
           error={fieldError(errors.name?.message)}
           {...register("name")}
         />
-        <TextField 
+        <TextField
           label={t("email")}
           type="email"
           autoComplete="email"
@@ -74,7 +71,7 @@ export function SignUpForm({ next }: { next: string }) {
           error={fieldError(errors.email?.message)}
           {...register("email")}
         />
-        <TextField 
+        <TextField
           label={t("password")}
           type="password"
           autoComplete="new-password"
@@ -102,4 +99,7 @@ export function SignUpForm({ next }: { next: string }) {
       </p>
     </div>
   );
+
 }
+
+
