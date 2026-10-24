@@ -15,15 +15,15 @@ import { signInSchema, type SignInValues } from "@/validation/auth";
 import { SocialButtons } from "@/components/auth/social-buttons";
 
 export function SignInForm({
-  next,
-  notice,
-  providers,
-  initialError,
+    next,
+    notice,
+    providers,
+    initialError,
 }: {
-  next: string;
-  notice?: string | null;
-  providers: { google: boolean; facebook: boolean };
-  initialError?: string | null;
+    next: string;
+    notice?: string | null;
+    providers: { google: boolean; facebook: boolean };
+    initialError?: string | null;
 }) {
     const t = useTranslations("Auth");
     const router = useRouter();
@@ -42,7 +42,7 @@ export function SignInForm({
 
     async function onSubmit(values: SignInValues) {
         setFormError(null);
-        const { error } = await authClient.signIn.email({
+        const { data, error } = await authClient.signIn.email({
             email: values.email,
             password: values.password,
         });
@@ -55,10 +55,7 @@ export function SignInForm({
             if (status === 403) {
                 await authClient.sendVerificationEmail({
                     email: values.email,
-                    callbackURL: new URL(
-                        "/verify-email/complete",
-                        window.location.origin, 
-                    ).toString(), 
+                    callbackURL: new URL("/verify-email/complete", window.location.origin).toString(),
                 });
                 router.push(`/verify-email?email=${encodeURIComponent(values.email)}`);
                 return;
@@ -71,6 +68,15 @@ export function SignInForm({
                         ? t("errors.generic")
                         : t("errors.invalidCredentials"),
             );
+            return;
+        }
+
+        // The account has two-step verification: finish it on the challenge page.
+        // No session exists until the second factor is verified.
+        const challenge = data as { twoFactorRedirect?: boolean; twoFactorMethods?: string[] } | null;
+        if (challenge?.twoFactorRedirect) {
+            const emailOption = challenge.twoFactorMethods?.includes("otp") ? "&otp=1" : "";
+            router.push(`/two-factor?next=${encodeURIComponent(next)}${emailOption}`);
             return;
         }
 
@@ -93,7 +99,7 @@ export function SignInForm({
             >
                 <FormNotice message={notice} />
                 <FormAlert message={formError} />
-                <TextField 
+                <TextField
                     label={t("email")}
                     type="email"
                     autoComplete="email"

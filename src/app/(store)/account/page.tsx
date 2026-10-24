@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { requireUser } from "@/server/auth/session";
+import Link from "next/link";
 
 export const instant = false; // reads the session (request data)
 
@@ -17,6 +18,13 @@ export default async function AccountPage() {
         {t("role")}: <span className="font-medium text-foreground">{role}</span>
       </p>
       <p className="mt-6 text-sm text-muted-foreground">{t("accountNote")}</p>
+
+      <p className="mt-6">
+        <Link href="/account/security" className="text-primary hover:underline">
+          {t("securityLink")}
+        </Link>
+      </p>
+
       <div className="mt-8">
         <SignOutButton />
       </div>

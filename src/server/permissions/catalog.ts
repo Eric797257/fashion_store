@@ -119,3 +119,10 @@ export const ROLE_DEFINITIONS: Record<RoleKey, RoleDefinition> = {
     permissions: [],
   },
 };
+
+/** Roles whose accounts get the strictest security rules. */
+export const PRIVILEGED_ROLES: readonly RoleKey[] = ["SUPER_ADMIN", "ADMIN", "STAFF", "RIDER"];
+
+export function isPrivilegedRole(role: string | null | undefined): boolean {
+  return PRIVILEGED_ROLES.includes(role as RoleKey);
+}

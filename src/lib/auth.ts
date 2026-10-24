@@ -8,10 +8,12 @@ import {
   sendExistingAccountNotice,
   sendPasswordChangedNotice,
   sendPasswordResetLink,
+  sendTwoFactorCode,
   sendVerificationLink,
   type Recipient,
 } from "../integrations/email/auth-emails";
 import { appUrl } from "../integrations/email/templates";
+import { isPrivilegedRole } from "../server/permissions/catalog";
 import { authBodySchemas } from "../validation/auth";
 import { db } from "./db";
 
@@ -58,7 +60,7 @@ export const auth = betterAuth({
 
   emailVerification: {
     sendOnSignUp: true,
-    sendOnSignIn: false, // the sign-in form sends the link itself, with the right redirect
+    sendOnSignIn: false,
     autoSignInAfterVerification: true,
     expiresIn: 60 * 60 * 24, // 24 hours
     sendVerificationEmail: async ({ user, url }) => {
@@ -66,34 +68,30 @@ export const auth = betterAuth({
     },
   },
 
-  // A provider is only enabled when BOTH its id and secret are set
   socialProviders: {
     ...(googleId && googleSecret
       ? {
-          google: {
-            clientId: googleId,
-            clientSecret: googleSecret,
-            prompt: "select_account" as const,
-          },
-        }
+        google: {
+          clientId: googleId,
+          clientSecret: googleSecret,
+          prompt: "select_account" as const,
+        },
+      }
       : {}),
     ...(facebookId && facebookSecret
       ? {
-          facebook: {
-            clientId: facebookId,
-            clientSecret: facebookSecret,
-            // Facebook gives no proof the email is verified, so we verify it ourselves
-            requireEmailVerification: true,
-          },
-        }
+        facebook: {
+          clientId: facebookId,
+          clientSecret: facebookSecret,
+          requireEmailVerification: true,
+        },
+      }
       : {}),
   },
 
   account: {
     accountLinking: {
       enabled: true,
-      // A social login with the same email as an existing account is NOT merged silently.
-      // The owner signs in first and links the provider explicitly (account security page).
       disableImplicitLinking: true,
     },
   },
@@ -108,7 +106,6 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
-        // Save the visitor's language on accounts created through Google / Facebook
         before: async (_user, ctx) => {
           if (ctx?.path !== "/callback/:id") return;
           const state = await getOAuthState<{ locale?: string }>();
@@ -118,7 +115,6 @@ export const auth = betterAuth({
     },
   },
 
-  // Server-side validation with the same Zod schemas the forms use
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
       const schema = authBodySchemas[ctx.path];
@@ -145,11 +141,45 @@ export const auth = betterAuth({
       "/send-verification-email": { window: 600, max: 5 },
       "/request-password-reset": { window: 3600, max: 10 },
       "/reset-password": { window: 600, max: 10 },
+      // Two-step verification (the account itself is also locked after repeated failures)
+      "/two-factor/verify-totp": { window: 60, max: 10 },
+      "/two-factor/verify-backup-code": { window: 60, max: 10 },
+      "/two-factor/verify-otp": { window: 60, max: 10 },
+      "/two-factor/send-otp": { window: 600, max: 5 },
+      "/two-factor/enable": { window: 600, max: 10 },
+      "/two-factor/disable": { window: 600, max: 10 },
+      "/two-factor/generate-backup-codes": { window: 600, max: 10 },
     },
   },
 
   plugins: [
-    twoFactor({ issuer: brand.name }),
+    twoFactor({
+      issuer: brand.name,
+      twoFactorCookieMaxAge: 600, // the sign-in challenge is valid for 10 minutes
+      backupCodeOptions: { amount: 10, length: 10, storeBackupCodes: "encrypted" },
+      otpOptions: {
+        period: 5, // minutes
+        digits: 6,
+        allowedAttempts: 5,
+        storeOTP: "hashed",
+        sendOTP: async ({ user, otp }) => {
+          // Read the role from the database. The user object Better Auth passes in here
+          // does not reliably include it, and this rule must never be skipped.
+          const row = await db.user.findUnique({
+            where: { id: user.id },
+            select: { role: true },
+          });
+
+          // Fail closed: unknown user or any staff-level role means no email codes
+          if (!row || isPrivilegedRole(row.role)) {
+            console.warn("[2fa] email code refused for a privileged or unknown account");
+            throw new APIError("FORBIDDEN", { message: "otpNotAllowed" });
+          }
+
+          await sendTwoFactorCode(recipient(user), otp);
+        },
+      },
+    }),
     admin({ defaultRole: "CUSTOMER" }),
     nextCookies(), // must stay LAST
   ],

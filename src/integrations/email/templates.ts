@@ -138,3 +138,54 @@ export function renderAuthEmail(input: {
 
   return { subject, text, html };
 }
+
+const CODE_COPY: Record<EmailLocale, { subject: string; heading: string; body: string; note: string }> = {
+  en: {
+    subject: "Your sign-in code",
+    heading: "Your verification code",
+    body: "Hi {name}, use this code to finish signing in to {brand}.",
+    note: "The code expires in a few minutes and works once. If you didn't try to sign in, change your password now.",
+  },
+  my: {
+    subject: "သင့်အကောင့်ဝင်ရန် ကုဒ်",
+    heading: "သင့်အတည်ပြုကုဒ်",
+    body: "မင်္ဂလာပါ {name}၊ {brand} သို့ အကောင့်ဝင်ခြင်း ပြီးမြောက်ရန် ဤကုဒ်ကို အသုံးပြုပါ။",
+    note: "ကုဒ်သည် မိနစ်အနည်းငယ်အတွင်း သက်တမ်းကုန်ပြီး တစ်ကြိမ်သာ သုံးနိုင်ပါသည်။ သင် အကောင့်ဝင်ရန် မကြိုးစားခဲ့ပါက စကားဝှက်ကို ယခုပင် ပြောင်းလဲပါ။",
+  },
+};
+
+export function renderCodeEmail(input: { locale: EmailLocale; name: string; code: string }) {
+  const copy = CODE_COPY[input.locale];
+  const vars = {
+    name: input.name || (input.locale === "my" ? "မိတ်ဆွေ" : "there"),
+    brand: brand.name,
+    email: brand.contact.email,
+  };
+  const heading = fill(copy.heading, vars);
+  const body = fill(copy.body, vars);
+  const note = fill(copy.note, vars);
+  const subject = `${fill(copy.subject, vars)} · ${brand.name}`;
+
+  const text = [heading, "", body, "", input.code, "", note].join("\n");
+
+  const html = `<!doctype html>
+<html lang="${input.locale}">
+<body style="margin:0;background:#FAF9F6;font-family:Inter,Arial,'Noto Sans Myanmar',sans-serif;color:#20211F;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;background:#FFFFFF;border:1px solid #E8E6DF;border-radius:12px;">
+        <tr><td style="padding:32px;">
+          <div style="font-family:Georgia,serif;font-size:24px;font-weight:600;padding-bottom:20px;">${escapeHtml(brand.name)}</div>
+          <div style="font-family:Georgia,serif;font-size:22px;font-weight:600;padding-bottom:12px;">${escapeHtml(heading)}</div>
+          <p style="font-size:15px;line-height:1.7;margin:0 0 24px;">${escapeHtml(body)}</p>
+          <div style="display:inline-block;background:#F1EFE8;border-radius:8px;padding:16px 24px;font-family:Consolas,'SFMono-Regular',monospace;font-size:32px;font-weight:700;letter-spacing:8px;">${escapeHtml(input.code)}</div>
+          <p style="font-size:13px;line-height:1.7;color:#73756F;margin:24px 0 0;">${escapeHtml(note)}</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  return { subject, text, html };
+}

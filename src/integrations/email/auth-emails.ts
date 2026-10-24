@@ -1,5 +1,5 @@
 import { sendEmail } from "./index";
-import { renderAuthEmail, type AuthEmailKind, type EmailLocale } from "./templates";
+import { renderAuthEmail, renderCodeEmail, type AuthEmailKind, type EmailLocale } from "./templates";
 
 export interface Recipient {
   email: string;
@@ -37,3 +37,16 @@ export const sendPasswordChangedNotice = (to: Recipient, url: string) =>
   dispatch("password-changed", to, url);
 export const sendExistingAccountNotice = (to: Recipient, url: string) =>
   dispatch("existing-account", to, url);
+/**
+ * Unlike the link emails, this one IS awaited: the person already proved their password,
+ * so response time reveals nothing, and a delivery failure must show an error
+ * instead of a fake "code sent".
+ */
+export async function sendTwoFactorCode(to: Recipient, code: string): Promise<void> {
+  const { subject, text, html } = renderCodeEmail({
+    locale: toLocale(to.locale),
+    name: to.name?.trim() ?? "",
+    code,
+  });
+  await sendEmail({ to: to.email, subject, text, html });
+}

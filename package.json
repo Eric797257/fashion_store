@@ -26,6 +26,7 @@
     "user:set-role": "tsx scripts/set-role.ts",
     "auth:flow": "tsx scripts/auth-flow-check.ts",
     "auth:social": "tsx scripts/auth-social-check.ts",
+    "auth:2fa": "tsx scripts/two-factor-check.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -48,6 +49,7 @@
     "nodemailer": "^10.1.7",
     "pg": "^8.23.1",
     "qrcode": "^1.5.4",
+    "qrcode.react": "^4.2.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-hook-form": "^7.90.0",

@@ -16,8 +16,11 @@ export const passwordSchema = z
   .regex(/[A-Za-z]/, "passwordWeak")
   .regex(/\d/, "passwordWeak");
 
-// ---- Forms (browser) ----
+const sixDigits = z.string().trim().regex(/^\d{6}$/, "codeInvalid");
+const backupCode = z.string().trim().min(6, "codeInvalid").max(32, "codeInvalid");
+const currentPassword = z.string().min(1, "passwordRequired").max(128, "passwordTooLong");
 
+// ---- Forms (browser) ----
 export const signUpSchema = z.object({
   name: nameSchema,
   email: emailSchema,
@@ -41,6 +44,9 @@ export const resetPasswordFormSchema = z
     message: "passwordMismatch",
   });
 
+export const totpCodeSchema = z.object({ code: sixDigits });
+export const backupCodeSchema = z.object({ code: backupCode });
+
 export type SignUpValues = z.infer<typeof signUpSchema>;
 export type SignInValues = z.infer<typeof signInSchema>;
 export type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
@@ -48,6 +54,7 @@ export type ResetPasswordFormValues = z.infer<typeof resetPasswordFormSchema>;
 
 // ---- Server: what Better Auth endpoints receive ----
 const localeSchema = z.enum(["en", "my"]);
+const passwordBody = z.object({ password: currentPassword });
 
 /** Validated on the server for every matching request (see hooks in auth.ts). */
 export const authBodySchemas: Record<string, z.ZodType> = {
@@ -59,4 +66,14 @@ export const authBodySchemas: Record<string, z.ZodType> = {
     newPassword: passwordSchema,
     token: z.string().min(1, "invalidToken").max(512, "invalidToken"),
   }),
+  "/two-factor/verify-totp": z.object({ code: sixDigits, trustDevice: z.boolean().optional() }),
+  "/two-factor/verify-otp": z.object({ code: sixDigits, trustDevice: z.boolean().optional() }),
+  "/two-factor/verify-backup-code": z.object({
+    code: backupCode,
+    trustDevice: z.boolean().optional(),
+    disableSession: z.boolean().optional(),
+  }),
+  "/two-factor/enable": passwordBody,
+  "/two-factor/disable": passwordBody,
+  "/two-factor/generate-backup-codes": passwordBody,
 };
