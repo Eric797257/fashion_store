@@ -8,23 +8,34 @@ import { emailSchema } from "@/validation/auth";
 
 export const instant = false;
 
-export async function VerifyEmailPage({
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("Auth");
+  return { title: t("verifyTitle"), robots: { index: false } };
+}
+
+const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+
+export default async function VerifyEmailPage({
   searchParams,
 }: {
-  searchParams: Promise<{ email?: string | string[] }>;
+  searchParams: Promise<{ email?: string | string[]; social?: string | string[] }>;
 }) {
   const session = await getSession();
   if (session?.user.emailVerified) redirect("/account");
 
-  const { email } = await searchParams;
-  const parsed = emailSchema.safeParse(Array.isArray(email) ? email[0] : email);
+  const params = await searchParams;
+  const parsed = emailSchema.safeParse(first(params.email));
   const t = await getTranslations("Auth");
-  
+
   return (
-    <AuthCard 
+    <AuthCard
       title={t("verifyTitle")}
       subtitle={
-        parsed.success ? t("verifySentTo", { email: parsed.data }) : t("verifySentGeneric")
+        parsed.success
+          ? t("verifySentTo", { email: parsed.data })
+          : first(params.social)
+            ? t("verifySocial")
+            : t("verifySentGeneric")
       }
     >
       <VerifyEmailPanel email={parsed.success ? parsed.data : undefined} />

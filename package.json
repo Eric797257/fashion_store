@@ -25,6 +25,7 @@
     "auth:check": "tsx scripts/auth-check.ts",
     "user:set-role": "tsx scripts/set-role.ts",
     "auth:flow": "tsx scripts/auth-flow-check.ts",
+    "auth:social": "tsx scripts/auth-social-check.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

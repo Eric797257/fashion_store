@@ -12,17 +12,22 @@ import { TextField } from "@/components/auth/text-field";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { signInSchema, type SignInValues } from "@/validation/auth";
+import { SocialButtons } from "@/components/auth/social-buttons";
 
 export function SignInForm({
-    next,
-    notice,
+  next,
+  notice,
+  providers,
+  initialError,
 }: {
-    next: string;
-    notice?: string | null;
+  next: string;
+  notice?: string | null;
+  providers: { google: boolean; facebook: boolean };
+  initialError?: string | null;
 }) {
     const t = useTranslations("Auth");
     const router = useRouter();
-    const [formError, setFormError] = useState<string | null>(null);
+    const [formError, setFormError] = useState<string | null>(initialError ?? null);
 
     const {
         register,
@@ -79,6 +84,8 @@ export function SignInForm({
             <p className="mt-2 text-sm text-muted-foreground">
                 {t("signInSubtitle")}
             </p>
+
+            <SocialButtons providers={providers} next={next} />
 
             <form onSubmit={handleSubmit(onSubmit)}
                 noValidate

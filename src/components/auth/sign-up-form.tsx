@@ -11,12 +11,21 @@ import { TextField } from "@/components/auth/text-field";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { signUpSchema, type SignUpValues } from "@/validation/auth";
+import { SocialButtons } from "@/components/auth/social-buttons";
 
-export function SignUpForm({ next }: { next: string }) {
+export function SignUpForm({
+  next,
+  providers,
+  initialError,
+}: {
+  next: string;
+  providers: { google: boolean; facebook: boolean };
+  initialError?: string | null;
+}) {
   const t = useTranslations("Auth");
   const router = useRouter();
   const locale = useLocale();
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(initialError ?? null);
 
   const {
     register,
@@ -54,6 +63,8 @@ export function SignUpForm({ next }: { next: string }) {
     <div className="rounded-xl border border-border bg-card p-6 shadow-soft sm:p-8">
       <h1 className="text-3xl font-semibold">{t("signUpTitle")}</h1>
       <p className="mt-2 text-sm text-muted-foreground">{t("signUpSubtitle")}</p>
+
+      <SocialButtons providers={providers} next={next} />
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="mt-6 space-y-4">
         <FormAlert message={formError} />

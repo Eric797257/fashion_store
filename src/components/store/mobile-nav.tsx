@@ -11,7 +11,6 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 import { LanguageSwitch } from "@/components/store/language-switch";
 import type { NavCategory } from "@/server/queries/categories";

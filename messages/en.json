@@ -99,6 +99,10 @@
     "resetInvalidBody": "Reset links work once and expire after 1 hour.",
     "requestNewLink": "Request a new link",
     "passwordResetDone": "Your password was updated. Please sign in with your new password.",
+    "continueWithGoogle": "Continue with Google",
+    "continueWithFacebook": "Continue with Facebook",
+    "orDivider": "or use your email",
+    "verifySocial": "We sent a verification link to the email on your account. Open it to finish signing in. Didn't get it? Enter your email below.",
     "errors": {
       "nameLength": "Name must be between 2 and 80 characters.",
       "emailRequired": "Enter your email.",
@@ -112,7 +116,11 @@
       "invalidCredentials": "Email or password is incorrect.",
       "emailTaken": "An account with this email already exists.",
       "tooManyRequests": "Too many attempts. Please wait a moment and try again.",
-      "generic": "Something went wrong. Please try again."
+      "generic": "Something went wrong. Please try again.",
+      "accountNotLinked": "An account with this email already exists. Sign in with your password (or reset it), then connect Google or Facebook from your account security settings.",
+      "socialNoEmail": "Facebook did not share an email address with us. Please allow email access, or sign up with your email instead.",
+      "socialCancelled": "Sign-in was cancelled.",
+      "socialFailed": "We could not complete sign-in with that provider. Please try again."
     }
   }
 }

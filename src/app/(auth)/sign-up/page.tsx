@@ -4,8 +4,9 @@ import { redirect } from "next/navigation";
 import { SignUpForm } from "@/components/auth/sign-up-form";
 import { safeRedirectPath } from "@/lib/safe-redirect";
 import { getSession } from "@/server/auth/session";
+import { getEnabledProviders } from "@/server/auth/providers";
 
-export const instant = false; // reads the session (request data)
+export const instant = false;
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("Auth");
@@ -22,5 +23,5 @@ export default async function SignUpPage({
 
   if (await getSession()) redirect(target);
 
-  return <SignUpForm next={target} />
+  return <SignUpForm next={target} providers={getEnabledProviders()} />;
 }
