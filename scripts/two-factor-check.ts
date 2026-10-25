@@ -127,6 +127,25 @@ async function countCodeEmails(): Promise<number> {
     );
 }
 
+/** Audit rows can land a moment after the response, so wait up to 5 seconds for one. */
+async function waitForAudit(userId: string | undefined, action: string): Promise<boolean> {
+    for (let i = 0; i < 20; i++) {
+        const row = await prisma.auditLog.findFirst({ where: { entityId: userId, action } });
+        if (row) return true;
+        await new Promise((r) => setTimeout(r, 250));
+    }
+    return false;
+}
+
+async function auditActionsFor(userId: string | undefined): Promise<string> {
+    const rows = await prisma.auditLog.findMany({
+        where: { entityId: userId },
+        select: { action: true },
+        orderBy: { createdAt: "asc" },
+    });
+    return rows.map((r) => r.action).join(", ") || "none";
+}
+
 /** Signs in with the password and returns a jar that holds the 2FA challenge cookie. */
 async function startChallenge(ip: string) {
     const jar = new Jar();
@@ -169,6 +188,14 @@ async function main() {
     const goodVerify = await api("/two-factor/verify-totp", { code: nowCode }, session, setupIp);
     row = await prisma.user.findUnique({ where: { email }, select: { twoFactorEnabled: true } });
     report("Correct code turns 2FA on", goodVerify.status === 200 && row?.twoFactorEnabled === true, `status ${goodVerify.status}`);
+
+    const me = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+    const enabledOk = await waitForAudit(me?.id, "two_factor.enabled");
+    report(
+        "Turning 2FA on is written to the audit log",
+        enabledOk,
+        `rows: ${await auditActionsFor(me?.id)}`,
+    );
 
     // 6) Server validation: a code that is not 6 digits is rejected before it is even checked
     const malformed = await api("/two-factor/verify-totp", { code: "12ab" }, session, setupIp);
@@ -233,6 +260,13 @@ async function main() {
     row = await prisma.user.findUnique({ where: { email }, select: { twoFactorEnabled: true } });
     report("Correct password turns 2FA off", disable.status === 200 && row?.twoFactorEnabled !== true, `status ${disable.status}`);
 
+    const disabledOk = await waitForAudit(me?.id, "two_factor.disabled");
+    report(
+        "Turning 2FA off is written to the audit log",
+        disabledOk,
+        `rows: ${await auditActionsFor(me?.id)}`,
+    );
+
     // 13) Repeated wrong codes get blocked (account lockout and/or rate limit). Run last: it locks the test account.
     await api("/two-factor/enable", { password: PW }, session, setupIp);
     const secret2 = new URL(String((await api("/two-factor/enable", { password: PW }, session, setupIp)).json.totpURI ?? "http://x/?secret=")).searchParams.get("secret") ?? "";
@@ -258,6 +292,7 @@ main()
         failed = true;
     })
     .finally(async () => {
+        await prisma.auditLog.deleteMany({ where: { summary: { in: ["Two-step verification turned on", "Two-step verification turned off"] } } });
         await prisma.user.deleteMany({ where: { email } });
         await prisma.$disconnect();
         process.exit(failed ? 1 : 0);

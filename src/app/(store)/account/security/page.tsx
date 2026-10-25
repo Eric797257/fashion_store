@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import { ConnectedAccounts } from "@/components/auth/connected-accounts";
+import { FormAlert } from "@/components/auth/form-alert";
 import { TwoFactorSettings } from "@/components/auth/two-factor-settings";
 import { db } from "@/lib/db";
-import { requireUser } from "@/server/auth/session";
-import { isPrivilegedRole } from "@/server/permissions/catalog";
+import { requireAccess } from "@/server/auth/access";
+import { getEnabledProviders } from "@/server/auth/providers";
 
 export const instant = false;
 
@@ -12,36 +14,50 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("securityTitle"), robots: { index: false } };
 }
 
-export default async function SecurityPage() {
-  const { user } = await requireUser("/account/security");
+export default async function SecurityPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ required?: string | string[] }>;
+}) {
+  const access = await requireAccess("/account/security");
+  const { required } = await searchParams;
   const t = await getTranslations("TwoFactor");
 
-  // Two-step verification protects password sign-in, so it needs a password account
   const accounts = await db.account.findMany({
-    where: { userId: user.id },
-    select: { providerId: true },
+    where: { userId: access.userId },
+    select: { id: true, providerId: true },
   });
   const hasPassword = accounts.some((a) => a.providerId === "credential");
 
-  const enabled = Boolean((user as { twoFactorEnabled?: boolean | null }).twoFactorEnabled);
-  const role = (user as { role?: string | null }).role;
+  const mustEnable = access.isPrivileged && !access.twoFactorEnabled;
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6">
-      <h1 className="text-4xl font-semibold">{t("securityTitle")}</h1>
-      <p className="mt-3 text-muted-foreground">{t("securitySubtitle")}</p>
+    <div className="mx-auto max-w-2xl space-y-8 px-4 py-16 sm:px-6">
+      <div>
+        <h1 className="text-4xl font-semibold">{t("securityTitle")}</h1>
+        <p className="mt-3 text-muted-foreground">{t("securitySubtitle")}</p>
+      </div>
 
-      <div className="mt-8 rounded-xl border border-border bg-card p-6 shadow-soft">
+      {mustEnable && required && <FormAlert message={t("requiredBanner")} />}
+
+      <section className="rounded-xl border border-border bg-card p-6 shadow-soft">
         {hasPassword ? (
-          // canDisable only hides the button. Real enforcement for staff comes in Step 2.5.
-          <TwoFactorSettings enabled={enabled} canDisable={!isPrivilegedRole(role)} />
+          <TwoFactorSettings enabled={access.twoFactorEnabled} canDisable={!access.isPrivileged} />
         ) : (
           <div className="space-y-2">
             <h2 className="text-xl font-semibold">{t("noPasswordTitle")}</h2>
             <p className="text-sm text-muted-foreground">{t("noPasswordBody")}</p>
           </div>
         )}
-      </div>
+      </section>
+
+      <section className="rounded-xl border border-border bg-card p-6 shadow-soft">
+        <ConnectedAccounts
+          accounts={accounts}
+          providers={getEnabledProviders()}
+          allowSocial={!access.isPrivileged}
+        />
+      </section>
     </div>
   );
 }

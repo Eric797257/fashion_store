@@ -104,6 +104,8 @@
     "orDivider": "or use your email",
     "verifySocial": "We sent a verification link to the email on your account. Open it to finish signing in. Didn't get it? Enter your email below.",
     "securityLink": "Account security",
+    "adminLink": "Admin dashboard",
+    "riderLink": "Rider app",
     "errors": {
       "nameLength": "Name must be between 2 and 80 characters.",
       "emailRequired": "Enter your email.",
@@ -121,7 +123,8 @@
       "accountNotLinked": "An account with this email already exists. Sign in with your password (or reset it), then connect Google or Facebook from your account security settings.",
       "socialNoEmail": "Facebook did not share an email address with us. Please allow email access, or sign up with your email instead.",
       "socialCancelled": "Sign-in was cancelled.",
-      "socialFailed": "We could not complete sign-in with that provider. Please try again."
+      "socialFailed": "We could not complete sign-in with that provider. Please try again.",
+      "socialStaffNotAllowed": "Staff accounts must sign in with email and password."
     }
   },
   "TwoFactor": {
@@ -174,6 +177,7 @@
     "staffRequired": "Staff accounts must keep two-step verification turned on.",
     "noPasswordTitle": "You sign in with Google or Facebook",
     "noPasswordBody": "Your account has no password. Two-step verification protects email-and-password sign-in only, so please secure your Google or Facebook account instead.",
+    "requiredBanner": "Staff accounts must turn on two-step verification before using the admin area.",
     "errors": {
       "codeInvalid": "Enter the code exactly as shown.",
       "wrongCode": "That code is not correct. Try again.",
@@ -182,5 +186,19 @@
       "sessionExpired": "Your sign-in session expired. Please sign in again.",
       "wrongPassword": "That password is not correct."
     }
+  },
+  "Security": {
+    "connectedTitle": "Sign-in methods",
+    "connectedBody": "The ways you can sign in to your account.",
+    "methodCredential": "Email and password",
+    "methodGoogle": "Google",
+    "methodFacebook": "Facebook",
+    "connectedBadge": "Connected",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "confirmDisconnect": "Disconnect {provider}?",
+    "yesDisconnect": "Yes, disconnect",
+    "lastMethod": "You can't remove your only sign-in method.",
+    "staffNoSocial": "Staff accounts sign in with email and password only."
   }
 }
