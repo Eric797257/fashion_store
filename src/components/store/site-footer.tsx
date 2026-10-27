@@ -1,4 +1,5 @@
 import { Banknote, Clock, Mail, MapPin, PackageSearch, Phone, Truck } from "lucide-react";
+import { cacheLife } from "next/cache";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { LanguageSwitch } from "@/components/store/language-switch";
@@ -12,8 +13,19 @@ const SOCIAL_LABELS = {
   tiktok: "TikTok",
 } as const;
 
+/** The current year, cached. Reading the clock inside a cache is allowed, and it refreshes daily. */
+async function getCurrentYear(): Promise<number> {
+  "use cache";
+  cacheLife("days");
+  return new Date().getFullYear();
+}
+
 export async function SiteFooter() {
-  const [t, locale] = await Promise.all([getTranslations("Footer"), getLocale()]);
+  const [t, locale, year] = await Promise.all([
+    getTranslations("Footer"),
+    getLocale(),
+    getCurrentYear(),
+  ]);
   const categories = await getNavCategories(locale);
 
   const linkClass = "text-sm text-muted-foreground transition hover:text-primary";
@@ -111,7 +123,7 @@ export async function SiteFooter() {
       <div className="border-t border-border">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 py-6 text-sm text-muted-foreground sm:flex-row sm:px-6 lg:px-8">
           <p>
-            © {new Date().getFullYear()} {brand.legalName}. {t("rights")}
+            © {year} {brand.legalName}. {t("rights")}
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-4">

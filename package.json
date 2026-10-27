@@ -28,6 +28,7 @@
     "auth:social": "tsx scripts/auth-social-check.ts",
     "auth:2fa": "tsx scripts/two-factor-check.ts",
     "auth:rbac": "tsx scripts/rbac-check.ts",
+    "catalog:check": "tsx scripts/catalog-listing-check.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
