@@ -30,7 +30,8 @@
     "auth:rbac": "tsx scripts/rbac-check.ts",
     "catalog:check": "tsx scripts/catalog-listing-check.ts",
     "product:check": "tsx scripts/product-check.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "search:check": "tsx scripts/search-check.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

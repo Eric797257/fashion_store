@@ -1,3 +1,5 @@
+import type { AudienceValue } from "../../validation/catalog";
+
 export type CatalogLocale = "en" | "my";
 export type StockStatus = "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK";
 
@@ -26,10 +28,18 @@ export interface ProductCardData {
   isNew: boolean;
 }
 
+export interface Facets {
+  brands: { slug: string; name: string; count: number }[];
+  colors: { name: string; hex: string | null; count: number }[];
+  sizes: { name: string; count: number }[];
+  audiences: { value: AudienceValue; count: number }[];
+}
+
 export interface ProductListing {
   items: ProductCardData[];
   total: number;
   page: number;
   pageSize: number;
   totalPages: number;
+  facets: Facets;
 }

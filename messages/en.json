@@ -235,7 +235,21 @@
     "next": "Next",
     "errorTitle": "We couldn't load the products",
     "errorBody": "Please try again in a moment.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "sortRelevance": "Most relevant",
+    "audience": "For",
+    "audienceWomen": "Women",
+    "audienceMen": "Men",
+    "audienceUnisex": "Unisex",
+    "audienceKids": "Kids",
+    "brand": "Brand",
+    "colour": "Colour",
+    "size": "Size",
+    "activeFilters": "Active filters",
+    "removeFilter": "Remove filter: {name}",
+    "priceFrom": "From {amount}",
+    "priceUpTo": "Up to {amount}",
+    "priceBetween": "{min} – {max}"
   },
   "Product": {
     "galleryLabel": "Product images",
@@ -275,5 +289,21 @@
     "starsRowLabel": "{stars} stars: {count} reviews",
     "anonymous": "Customer",
     "relatedTitle": "You may also like"
+  },
+  "Search": {
+    "searchTitle": "Search results for “{query}”",
+    "searchPage": "Search",
+    "searchPromptTitle": "What are you looking for?",
+    "searchPromptBody": "Type a product, colour or category in the search box above.",
+    "browseAll": "Browse all products",
+    "searchingFor": "Showing results for “{query}”.",
+    "clearSearch": "Clear search",
+    "suggestionsLabel": "Search suggestions",
+    "productsHeading": "Products",
+    "categoriesHeading": "Categories",
+    "seeAll": "See all results for “{query}”",
+    "noQuickMatches": "No quick matches. Press Enter to search everything.",
+    "suggestionsCount": "{count, plural, =0 {No suggestions} one {# suggestion} other {# suggestions}} available",
+    "noResultsSearchBody": "Check the spelling or try a shorter, more general word."
   }
 }

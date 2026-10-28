@@ -1,15 +1,17 @@
 import { useTranslations } from "next-intl";
 import Link from "next/link";
+import { ActiveFilters } from "@/components/store/active-filters";
 import { ListingFilters } from "@/components/store/listing-filters";
 import { Pagination } from "@/components/store/pagination";
 import { ProductGrid } from "@/components/store/product-grid";
 import { SortSelect } from "@/components/store/sort-select";
-import { hasActiveFilters, listingHref } from "@/lib/listing-url";
+import { clearFilters, hasActiveFilters, listingHref } from "@/lib/listing-url";
 import type { ProductListing } from "@/server/catalog/types";
 import type { CategoryTreeNode } from "@/server/queries/categories";
-import { SORT_OPTIONS, type ListingParams } from "@/validation/catalog";
+import { BROWSE_SORTS, SEARCH_SORTS, type ListingParams } from "@/validation/catalog";
 
 const SORT_LABEL_KEY = {
+  relevance: "sortRelevance",
   newest: "sortNewest",
   "price-asc": "sortPriceAsc",
   "price-desc": "sortPriceDesc",
@@ -42,15 +44,26 @@ export function ListingView({
   breadcrumbs: Crumb[];
 }) {
   const t = useTranslations("Catalog");
+  const ts = useTranslations("Search");
 
-  const sortOptions = SORT_OPTIONS.map((value) => ({
+  const sorts = params.q ? SEARCH_SORTS : BROWSE_SORTS;
+  const sortOptions = sorts.map((value) => ({
     value,
     label: t(SORT_LABEL_KEY[value]),
     href: listingHref(basePath, params, { sort: value, page: 1 }),
   }));
 
+  const clearSearchHref =
+    basePath === "/search" ? "/products" : listingHref(basePath, params, { q: undefined, page: 1 });
+
   const filters = (
-    <ListingFilters basePath={basePath} params={params} tree={tree} activeSlug={activeSlug} />
+    <ListingFilters
+      basePath={basePath}
+      params={params}
+      tree={tree}
+      activeSlug={activeSlug}
+      facets={listing.facets}
+    />
   );
 
   return (
@@ -75,8 +88,16 @@ export function ListingView({
       </nav>
 
       <header className="mt-4">
-        <h1 className="text-4xl font-semibold sm:text-5xl">{title}</h1>
+        <h1 className="break-words text-4xl font-semibold sm:text-5xl">{title}</h1>
         {description && <p className="mt-3 max-w-2xl text-muted-foreground">{description}</p>}
+        {params.q && basePath !== "/search" && (
+          <p className="mt-3 text-sm text-muted-foreground">
+            {ts("searchingFor", { query: params.q })}{" "}
+            <Link href={clearSearchHref} className="text-primary hover:underline">
+              {ts("clearSearch")}
+            </Link>
+          </p>
+        )}
       </header>
 
       <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
@@ -97,6 +118,8 @@ export function ListingView({
         </aside>
 
         <div>
+          <ActiveFilters basePath={basePath} params={params} facets={listing.facets} />
+
           {listing.items.length > 0 ? (
             <>
               <ProductGrid products={listing.items} />
@@ -110,15 +133,12 @@ export function ListingView({
           ) : (
             <div className="rounded-xl border border-dashed border-border py-16 text-center">
               <h2 className="font-sans text-xl font-semibold">{t("noResultsTitle")}</h2>
-              <p className="mt-2 text-muted-foreground">{t("noResultsBody")}</p>
+              <p className="mt-2 text-muted-foreground">
+                {params.q ? ts("noResultsSearchBody") : t("noResultsBody")}
+              </p>
               {hasActiveFilters(params) && (
                 <Link
-                  href={listingHref(basePath, params, {
-                    min: undefined,
-                    max: undefined,
-                    inStock: false,
-                    page: 1,
-                  })}
+                  href={listingHref(basePath, params, clearFilters())}
                   className="mt-4 inline-block text-primary hover:underline"
                 >
                   {t("clearAll")}

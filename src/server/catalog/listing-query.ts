@@ -1,20 +1,36 @@
 import { Prisma } from "../../generated/prisma/client";
 import { localized } from "../../i18n/localized";
 import { db } from "../../lib/db";
-import { LISTING_PAGE_SIZE, type ListingParams, type SortOption } from "../../validation/catalog";
+import { compareSizes } from "../../lib/size-order";
+import {
+  AUDIENCE_VALUES,
+  LISTING_PAGE_SIZE,
+  audienceToEnum,
+  type AudienceValue,
+  type ListingParams,
+  type SortOption,
+} from "../../validation/catalog";
 import { resolvePrice } from "./pricing";
+import { findSearchCandidates } from "./search-candidates";
 import { summarizeStock } from "./stock";
-import type { CatalogLocale, ProductCardData, ProductListing } from "./types";
+import type { CatalogLocale, Facets, ProductCardData, ProductListing } from "./types";
 
 const NEW_PRODUCT_DAYS = 14;
 const MAX_COLOR_SWATCHES = 5;
 
+// ---------------------------------------------------------------------------
+// Real database column names. The Prisma schema maps camelCase fields to
+// snake_case columns, and RAW SQL must use the column names. If you ever rename
+// a column, change it here and nowhere else.
+// ---------------------------------------------------------------------------
 const col = (alias: string, name: string) => Prisma.raw(`${alias}."${name}"`);
 
 const P = {
   id: col("p", "id"),
   status: col("p", "status"),
   categoryId: col("p", "category_id"),
+  brandId: col("p", "brand_id"),
+  audience: col("p", "audience"),
   price: col("p", "price"),
   salePrice: col("p", "sale_price"),
   saleStartsAt: col("p", "sale_starts_at"),
@@ -29,6 +45,8 @@ const P = {
 const V = {
   productId: col("v", "product_id"),
   isActive: col("v", "is_active"),
+  color: col("v", "color"),
+  size: col("v", "size"),
   stockOnHand: col("v", "stock_on_hand"),
   stockReserved: col("v", "stock_reserved"),
 };
@@ -37,7 +55,7 @@ const V = {
 const EFFECTIVE_PRICE = Prisma.sql`(CASE WHEN ${P.salePrice} IS NOT NULL AND ${P.salePrice} < ${P.price} AND (${P.saleStartsAt} IS NULL OR ${P.saleStartsAt} <= NOW()) AND (${P.saleEndsAt} IS NULL OR ${P.saleEndsAt} >= NOW()) THEN ${P.salePrice} ELSE ${P.price} END)`;
 
 // The sort comes from this fixed list, never from user text
-const ORDER_BY: Record<SortOption, Prisma.Sql> = {
+const ORDER_BY: Record<Exclude<SortOption, "relevance">, Prisma.Sql> = {
   newest: Prisma.sql`${P.publishedAt} DESC NULLS LAST, ${P.createdAt} DESC`,
   "price-asc": Prisma.sql`${EFFECTIVE_PRICE} ASC`,
   "price-desc": Prisma.sql`${EFFECTIVE_PRICE} DESC`,
@@ -45,7 +63,48 @@ const ORDER_BY: Record<SortOption, Prisma.Sql> = {
   rating: Prisma.sql`${P.ratingAverage} DESC, ${P.ratingCount} DESC, ${P.createdAt} DESC`,
 };
 
-function buildWhere(params: ListingParams, categoryIds: string[] | null): Prisma.Sql {
+function orderBy(params: ListingParams, searchIds: string[] | null): Prisma.Sql {
+  if (params.sort === "relevance") {
+    // The candidate list is already ranked, so keep its order
+    return searchIds && searchIds.length > 0
+      ? Prisma.sql`array_position(ARRAY[${Prisma.join(searchIds)}]::text[], ${P.id}) ASC`
+      : ORDER_BY.newest;
+  }
+  return ORDER_BY[params.sort];
+}
+
+/**
+ * One variant must satisfy colour, size and stock TOGETHER.
+ * "Navy" + "M" only matches products that really have a Navy/M variant.
+ */
+function variantExists(params: ListingParams, withColorAndSize: boolean): Prisma.Sql | null {
+  const parts: Prisma.Sql[] = [Prisma.sql`${V.productId} = ${P.id}`, Prisma.sql`${V.isActive} = true`];
+  let extra = 0;
+
+  if (withColorAndSize && params.color.length > 0) {
+    parts.push(Prisma.sql`LOWER(${V.color}) IN (${Prisma.join(params.color.map((c) => c.toLowerCase()))})`);
+    extra++;
+  }
+  if (withColorAndSize && params.size.length > 0) {
+    parts.push(Prisma.sql`LOWER(${V.size}) IN (${Prisma.join(params.size.map((s) => s.toLowerCase()))})`);
+    extra++;
+  }
+  if (params.inStock) {
+    parts.push(Prisma.sql`${V.stockOnHand} - ${V.stockReserved} > 0`);
+    extra++;
+  }
+
+  if (extra === 0) return null;
+  return Prisma.sql`EXISTS (SELECT 1 FROM "product_variants" v WHERE ${Prisma.join(parts, " AND ")})`;
+}
+
+/** withFacets=false is the "base" used for the option counts: everything except brand/colour/size/audience. */
+function buildWhere(
+  params: ListingParams,
+  categoryIds: string[] | null,
+  searchIds: string[] | null,
+  withFacets: boolean,
+): Prisma.Sql {
   const conditions: Prisma.Sql[] = [Prisma.sql`${P.status} = 'ACTIVE'`];
 
   if (categoryIds) {
@@ -55,13 +114,27 @@ function buildWhere(params: ListingParams, categoryIds: string[] | null): Prisma
         : Prisma.sql`FALSE`,
     );
   }
-  if (params.min !== undefined) conditions.push(Prisma.sql`${EFFECTIVE_PRICE} >= ${params.min}`);
-  if (params.max !== undefined) conditions.push(Prisma.sql`${EFFECTIVE_PRICE} <= ${params.max}`);
-  if (params.inStock) {
+  if (searchIds) {
     conditions.push(
-      Prisma.sql`EXISTS (SELECT 1 FROM "product_variants" v WHERE ${V.productId} = ${P.id} AND ${V.isActive} = true AND ${V.stockOnHand} - ${V.stockReserved} > 0)`,
+      searchIds.length > 0 ? Prisma.sql`${P.id} IN (${Prisma.join(searchIds)})` : Prisma.sql`FALSE`,
     );
   }
+  if (params.min !== undefined) conditions.push(Prisma.sql`${EFFECTIVE_PRICE} >= ${params.min}`);
+  if (params.max !== undefined) conditions.push(Prisma.sql`${EFFECTIVE_PRICE} <= ${params.max}`);
+
+  if (withFacets && params.brand.length > 0) {
+    conditions.push(
+      Prisma.sql`EXISTS (SELECT 1 FROM "brands" b WHERE b."id" = ${P.brandId} AND b."slug" IN (${Prisma.join(params.brand)}))`,
+    );
+  }
+  if (withFacets && params.audience.length > 0) {
+    conditions.push(
+      Prisma.sql`${P.audience}::text IN (${Prisma.join(params.audience.map(audienceToEnum))})`,
+    );
+  }
+
+  const variant = variantExists(params, withFacets);
+  if (variant) conditions.push(variant);
 
   return Prisma.join(conditions, " AND ");
 }
@@ -153,12 +226,81 @@ export function toCard(p: ProductRow, locale: CatalogLocale, now: Date): Product
   };
 }
 
+/** Option lists with counts. They ignore the visitor's own brand/colour/size/audience choices. */
+async function queryFacets(
+  params: ListingParams,
+  categoryIds: string[] | null,
+  searchIds: string[] | null,
+): Promise<Facets> {
+  const base = buildWhere(params, categoryIds, searchIds, false);
+  const stockJoin = params.inStock
+    ? Prisma.sql` AND ${V.stockOnHand} - ${V.stockReserved} > 0`
+    : Prisma.empty;
+
+  const [colorRows, sizeRows, brandRows, audienceRows] = await Promise.all([
+    db.$queryRaw<{ name: string; n: bigint }[]>`
+      SELECT MIN(${V.color}) AS name, COUNT(DISTINCT ${P.id}) AS n
+      FROM "products" p
+      JOIN "product_variants" v ON ${V.productId} = ${P.id} AND ${V.isActive} = true${stockJoin}
+      WHERE ${base}
+      GROUP BY LOWER(${V.color})
+      ORDER BY n DESC, name ASC`,
+    db.$queryRaw<{ name: string; n: bigint }[]>`
+      SELECT MIN(${V.size}) AS name, COUNT(DISTINCT ${P.id}) AS n
+      FROM "products" p
+      JOIN "product_variants" v ON ${V.productId} = ${P.id} AND ${V.isActive} = true${stockJoin}
+      WHERE ${base}
+      GROUP BY LOWER(${V.size})`,
+    db.$queryRaw<{ slug: string; name: string; n: bigint }[]>`
+      SELECT b."slug" AS slug, MIN(b."name") AS name, COUNT(*) AS n
+      FROM "products" p
+      JOIN "brands" b ON b."id" = ${P.brandId}
+      WHERE ${base}
+      GROUP BY b."slug"
+      ORDER BY n DESC, name ASC`,
+    db.$queryRaw<{ value: string; n: bigint }[]>`
+      SELECT ${P.audience}::text AS value, COUNT(*) AS n
+      FROM "products" p
+      WHERE ${base}
+      GROUP BY ${P.audience}`,
+  ]);
+
+  // Swatch colours come from the variants themselves
+  const names = colorRows.map((r) => r.name);
+  const hexRows =
+    names.length > 0
+      ? await db.productVariant.findMany({
+          where: { color: { in: names }, colorHex: { not: null } },
+          distinct: ["color"],
+          select: { color: true, colorHex: true },
+        })
+      : [];
+  const hexByColor = new Map(hexRows.map((r) => [r.color, r.colorHex]));
+
+  const audienceCount = new Map(audienceRows.map((r) => [r.value.toLowerCase(), Number(r.n)]));
+
+  return {
+    colors: colorRows.map((r) => ({ name: r.name, hex: hexByColor.get(r.name) ?? null, count: Number(r.n) })),
+    sizes: sizeRows
+      .map((r) => ({ name: r.name, count: Number(r.n) }))
+      .sort((a, b) => compareSizes(a.name, b.name)),
+    brands: brandRows.map((r) => ({ slug: r.slug, name: r.name, count: Number(r.n) })),
+    audiences: AUDIENCE_VALUES.flatMap((value: AudienceValue) => {
+      const count = audienceCount.get(value);
+      return count ? [{ value, count }] : [];
+    }),
+  };
+}
+
 export async function queryProductListing(
   params: ListingParams,
   locale: CatalogLocale,
   categoryIds: string[] | null,
 ): Promise<ProductListing> {
-  const where = buildWhere(params, categoryIds);
+  // Search narrows to a ranked list of candidate ids first
+  const searchIds = params.q ? await findSearchCandidates(params.q) : null;
+
+  const where = buildWhere(params, categoryIds, searchIds, true);
 
   const [countRow] = await db.$queryRaw<{ total: bigint }[]>`
     SELECT COUNT(*)::bigint AS total FROM "products" p WHERE ${where}`;
@@ -168,15 +310,18 @@ export async function queryProductListing(
   const page = Math.min(params.page, totalPages);
   const offset = (page - 1) * LISTING_PAGE_SIZE;
 
-  const idRows = await db.$queryRaw<{ id: string }[]>`
-    SELECT ${P.id} AS id FROM "products" p
-    WHERE ${where}
-    ORDER BY ${ORDER_BY[params.sort]}, ${P.id} ASC
-    LIMIT ${LISTING_PAGE_SIZE} OFFSET ${offset}`;
+  const [idRows, facets] = await Promise.all([
+    db.$queryRaw<{ id: string }[]>`
+      SELECT ${P.id} AS id FROM "products" p
+      WHERE ${where}
+      ORDER BY ${orderBy(params, searchIds)}, ${P.id} ASC
+      LIMIT ${LISTING_PAGE_SIZE} OFFSET ${offset}`,
+    queryFacets(params, categoryIds, searchIds),
+  ]);
 
   const ids = idRows.map((r) => r.id);
   if (ids.length === 0) {
-    return { items: [], total, page, pageSize: LISTING_PAGE_SIZE, totalPages };
+    return { items: [], total, page, pageSize: LISTING_PAGE_SIZE, totalPages, facets };
   }
 
   const rows = await fetchRows(ids);
@@ -187,5 +332,5 @@ export async function queryProductListing(
     return row ? [toCard(row, locale, now)] : [];
   });
 
-  return { items, total, page, pageSize: LISTING_PAGE_SIZE, totalPages };
+  return { items, total, page, pageSize: LISTING_PAGE_SIZE, totalPages, facets };
 }

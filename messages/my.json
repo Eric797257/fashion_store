@@ -235,7 +235,21 @@
     "next": "နောက်",
     "errorTitle": "ပစ္စည်းများကို ဖော်ပြ၍ မရပါ",
     "errorBody": "ခဏနေမှ ထပ်ကြိုးစားပါ။",
-    "retry": "ထပ်ကြိုးစားရန်"
+    "retry": "ထပ်ကြိုးစားရန်",
+    "sortRelevance": "ကိုက်ညီမှု အများဆုံး",
+    "audience": "အတွက်",
+    "audienceWomen": "အမျိုးသမီး",
+    "audienceMen": "အမျိုးသား",
+    "audienceUnisex": "အားလုံးအတွက်",
+    "audienceKids": "ကလေး",
+    "brand": "ကုန်အမှတ်တံဆိပ်",
+    "colour": "အရောင်",
+    "size": "အရွယ်အစား",
+    "activeFilters": "အသုံးပြုထားသော စစ်ထုတ်မှုများ",
+    "removeFilter": "စစ်ထုတ်မှု ဖယ်ရှားရန် - {name}",
+    "priceFrom": "{amount} မှ",
+    "priceUpTo": "{amount} အထိ",
+    "priceBetween": "{min} – {max}"
   },
   "Product": {
     "galleryLabel": "ကုန်ပစ္စည်းပုံများ",
@@ -275,5 +289,21 @@
     "starsRowLabel": "{stars} ပွင့်၊ သုံးသပ်ချက် {count} ခု",
     "anonymous": "ဖောက်သည်",
     "relatedTitle": "သင်နှစ်သက်နိုင်သည့် ပစ္စည်းများ"
+  },
+  "Search": {
+    "searchTitle": "“{query}” အတွက် ရှာဖွေမှုရလဒ်များ",
+    "searchPage": "ရှာဖွေရန်",
+    "searchPromptTitle": "ဘာရှာနေပါသလဲ?",
+    "searchPromptBody": "အပေါ်ရှိ ရှာဖွေရန်အကွက်တွင် ပစ္စည်း၊ အရောင် သို့မဟုတ် အမျိုးအစား ရိုက်ထည့်ပါ။",
+    "browseAll": "ပစ္စည်းအားလုံး ကြည့်ရန်",
+    "searchingFor": "“{query}” အတွက် ရလဒ်များကို ပြသနေသည်။",
+    "clearSearch": "ရှာဖွေမှု ရှင်းရန်",
+    "suggestionsLabel": "ရှာဖွေရန် အကြံပြုချက်များ",
+    "productsHeading": "ပစ္စည်းများ",
+    "categoriesHeading": "အမျိုးအစားများ",
+    "seeAll": "“{query}” အတွက် ရလဒ်အားလုံး ကြည့်ရန်",
+    "noQuickMatches": "အမြန်ကိုက်ညီမှု မတွေ့ပါ။ အားလုံးကို ရှာရန် Enter နှိပ်ပါ။",
+    "suggestionsCount": "အကြံပြုချက် {count} ခု ရှိသည်",
+    "noResultsSearchBody": "စာလုံးပေါင်းကို စစ်ပါ သို့မဟုတ် ပိုတိုပြီး ယေဘုယျကျသော စကားလုံးဖြင့် ကြိုးစားပါ။"
   }
 }

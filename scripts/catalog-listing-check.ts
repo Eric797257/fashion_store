@@ -18,7 +18,18 @@ function report(name: string, ok: boolean, detail = "") {
   if (!ok) failed = true;
 }
 
-const base: ListingParams = { sort: "newest", page: 1, min: undefined, max: undefined, inStock: false };
+const base: ListingParams = {
+  q: undefined,
+  sort: "newest",
+  page: 1,
+  min: undefined,
+  max: undefined,
+  inStock: false,
+  brand: [],
+  color: [],
+  size: [],
+  audience: [],
+};
 const DAY = 24 * 60 * 60 * 1000;
 
 async function makeProduct(opts: {
@@ -73,8 +84,8 @@ async function main() {
   report(
     "Stock labels: sold out, low and in stock",
     summarizeStock([v(3, 3)]).status === "OUT_OF_STOCK" &&
-      summarizeStock([v(8, 4)]).status === "LOW_STOCK" &&
-      summarizeStock([v(40, 0)]).status === "IN_STOCK",
+    summarizeStock([v(8, 4)]).status === "LOW_STOCK" &&
+    summarizeStock([v(40, 0)]).status === "IN_STOCK",
   );
   report("Reserved units are not available", summarizeStock([v(10, 7)]).available === 3);
 
