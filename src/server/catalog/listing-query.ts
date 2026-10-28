@@ -9,11 +9,6 @@ import type { CatalogLocale, ProductCardData, ProductListing } from "./types";
 const NEW_PRODUCT_DAYS = 14;
 const MAX_COLOR_SWATCHES = 5;
 
-// ---------------------------------------------------------------------------
-// Real database column names. The Prisma schema maps camelCase fields to
-// snake_case columns, and RAW SQL must use the column names. If you ever rename
-// a column, change it here and nowhere else.
-// ---------------------------------------------------------------------------
 const col = (alias: string, name: string) => Prisma.raw(`${alias}."${name}"`);
 
 const P = {
@@ -81,7 +76,7 @@ export async function resolveCategoryIds(slug: string): Promise<string[] | null>
   return [category.id, ...category.children.map((c) => c.id)];
 }
 
-async function fetchRows(ids: string[]) {
+export async function fetchRows(ids: string[]) {
   return db.product.findMany({
     where: { id: { in: ids } },
     select: {
@@ -116,7 +111,7 @@ async function fetchRows(ids: string[]) {
 
 type ProductRow = Awaited<ReturnType<typeof fetchRows>>[number];
 
-function toCard(p: ProductRow, locale: CatalogLocale, now: Date): ProductCardData {
+export function toCard(p: ProductRow, locale: CatalogLocale, now: Date): ProductCardData {
   const name = localized(p.name, p.nameMy, locale);
   const price = resolvePrice(
     {

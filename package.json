@@ -29,6 +29,7 @@
     "auth:2fa": "tsx scripts/two-factor-check.ts",
     "auth:rbac": "tsx scripts/rbac-check.ts",
     "catalog:check": "tsx scripts/catalog-listing-check.ts",
+    "product:check": "tsx scripts/product-check.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
