@@ -106,6 +106,7 @@
     "securityLink": "Account security",
     "adminLink": "Admin dashboard",
     "riderLink": "Rider app",
+    "wishlistLink": "My wishlist",
     "errors": {
       "nameLength": "Name must be between 2 and 80 characters.",
       "emailRequired": "Enter your email.",
@@ -305,5 +306,25 @@
     "noQuickMatches": "No quick matches. Press Enter to search everything.",
     "suggestionsCount": "{count, plural, =0 {No suggestions} one {# suggestion} other {# suggestions}} available",
     "noResultsSearchBody": "Check the spelling or try a shorter, more general word."
+  },
+  "Wishlist": {
+    "toggleLabel": "Wishlist: {name}",
+    "save": "Save to wishlist",
+    "saved": "Saved to wishlist",
+    "added": "{name} was added to your wishlist",
+    "removed": "{name} was removed from your wishlist",
+    "limit": "Your wishlist is full (200 items). Remove something first.",
+    "notAvailable": "This product is no longer available.",
+    "rateLimited": "Too many changes. Please wait a moment.",
+    "failed": "We couldn't update your wishlist. Please try again.",
+    "pageTitle": "My wishlist",
+    "pageSubtitle": "{count, plural, one {# saved item} other {# saved items}}",
+    "emptyTitle": "Your wishlist is empty",
+    "emptyBody": "Tap the heart on any product to save it for later.",
+    "browse": "Browse products",
+    "unavailableTitle": "No longer available",
+    "unavailableBody": "These products were removed from the shop.",
+    "remove": "Remove",
+    "removeLabel": "Remove {name} from wishlist"
   }
 }

@@ -2,6 +2,7 @@ import { Star } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { ProductImage } from "@/components/store/product-image";
+import { WishlistButton } from "@/components/store/wishlist/wishlist-button";
 import { formatMoney } from "@/lib/money";
 import type { ProductCardData } from "@/server/catalog/types";
 
@@ -18,7 +19,7 @@ export function ProductCard({
   const soldOut = product.stockStatus === "OUT_OF_STOCK";
 
   return (
-    <article className="group">
+    <article className="group relative">
       <Link href={`/products/${product.slug}`} className="block rounded-lg">
         <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-secondary">
           <ProductImage image={product.image} sizes={IMAGE_SIZES} priority={priority} />
@@ -71,7 +72,11 @@ export function ProductCard({
 
           <div className="flex items-center justify-between gap-2">
             {product.colors.length > 0 && (
-              <p className="flex items-center gap-1" role="img" aria-label={t("colors", { count: product.colors.length })}>
+              <p
+                className="flex items-center gap-1"
+                role="img"
+                aria-label={t("colors", { count: product.colors.length })}
+              >
                 {product.colors.map((c) => (
                   <span
                     key={c.name}
@@ -99,6 +104,13 @@ export function ProductCard({
           </div>
         </div>
       </Link>
+
+      {/* A sibling of the link, not inside it */}
+      <WishlistButton
+        productId={product.id}
+        productName={product.name}
+        className="absolute right-2 top-2 z-10"
+      />
     </article>
   );
 }

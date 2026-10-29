@@ -7,6 +7,7 @@ import { MobileNav } from "./mobile-nav";
 import { SearchBox } from "./search-box";
 import { cn } from "@/lib/utils";
 import { getNavCategories } from "@/server/queries/categories";
+import { getWishlistState } from "@/server/wishlist/queries";
 
 function IconLink({
     href,
@@ -44,10 +45,10 @@ export async function SiteHeader() {
     const [t, locale] = await Promise.all([getTranslations("Header"), getLocale()]);
     const categories = await getNavCategories(locale);
 
-    // Real counts are wired in Step 4 (cart) and Step 3 (wishlist).
-    // Until then the badges are hidden instead of showing fake numbers.
+    // The cart count is wired in Step 4. Until then its badge stays hidden instead of showing a fake number.
     const cartCount = 0;
-    const wishlistCount = 0;
+    const { productIds: wishlistIds } = await getWishlistState();
+    const wishlistCount = wishlistIds.length;
 
     return (
         <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
@@ -61,7 +62,7 @@ export async function SiteHeader() {
                     <IconLink href="/account" label={t("account")}>
                         <User className="size-5" aria-hidden />
                     </IconLink>
-                    <IconLink  
+                    <IconLink
                         href="/account/wishlist"
                         label={t("wishlist")}
                         count={wishlistCount}

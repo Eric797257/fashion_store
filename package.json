@@ -31,7 +31,8 @@
     "catalog:check": "tsx scripts/catalog-listing-check.ts",
     "product:check": "tsx scripts/product-check.ts",
     "typecheck": "tsc --noEmit",
-    "search:check": "tsx scripts/search-check.ts"
+    "search:check": "tsx scripts/search-check.ts",
+    "wishlist:check": "tsx scripts/wishlist-check.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

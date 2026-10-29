@@ -19,6 +19,7 @@ import { getProductDetail, getProductReviews, getRelatedProducts } from "@/serve
 import { queryLiveStock } from "@/server/catalog/detail-query";
 import { buildProductJsonLd } from "@/server/catalog/structured-data";
 import { getStoreInfo } from "@/server/queries/store-info";
+import { WishlistButton } from "@/components/store/wishlist/wishlist-button";
 
 // Language comes from a cookie and stock is read live, so this page is rendered per request.
 export const instant = false;
@@ -153,6 +154,7 @@ export default async function ProductPage({ params, searchParams }: Props) {
             </div>
 
             <PurchasePanel />
+            <WishlistButton variant="detail" productId={detail.id} productName={detail.name} />
             <DeliveryInfo info={store} />
           </div>
         </div>

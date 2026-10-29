@@ -26,6 +26,11 @@ export default async function AccountPage() {
             {t("securityLink")}
           </Link>
         </li>
+        <li>
+          <Link href="/account/wishlist" className={linkClass}>
+            {t("wishlistLink")}
+          </Link>
+        </li>
         {hasPermission(access, "admin.access") && (
           <li>
             <Link href="/admin" className={linkClass}>
