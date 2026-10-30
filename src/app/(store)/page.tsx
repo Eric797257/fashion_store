@@ -1,70 +1,63 @@
-import { ShoppingBag, Truck, ShieldCheck } from "lucide-react";
+import type { Metadata } from "next";
+import { getLocale, getTranslations } from "next-intl/server";
+import { JsonLd } from "@/components/store/json-ld";
+import { CategoryTiles } from "@/components/store/home/category-tiles";
+import { HeroBanner } from "@/components/store/home/hero-banner";
+import { NewsletterSection } from "@/components/store/home/newsletter-section";
+import { ProductShelf } from "@/components/store/home/product-shelf";
+import { PromoBanners } from "@/components/store/home/promo-banners";
+import { Testimonials } from "@/components/store/home/testimonials";
 import { brand } from "@/config/brand";
-import { formatMoney } from "@/lib/money";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { resolveLocale } from "@/i18n/locale";
+import { siteUrl } from "@/lib/site-url";
+import { getBanners, getShelf, getTestimonials } from "@/server/catalog/home";
+import { buildWebsiteJsonLd } from "@/server/catalog/structured-data";
+import { getCategoryTree } from "@/server/queries/categories";
 
-export default function ThemePreviewPage() {
+export const instant = false;
+
+export const metadata: Metadata = {
+  description: brand.description,
+  alternates: { canonical: "/" },
+};
+
+export default async function HomePage() {
+  const locale = resolveLocale(await getLocale());
+
+  const [t, banners, tree, featured, newest, best, sale, testimonials] = await Promise.all([
+    getTranslations("Home"),
+    getBanners(locale),
+    getCategoryTree(locale),
+    getShelf("featured", 4, locale),
+    getShelf("new", 8, locale),
+    getShelf("best", 4, locale),
+    getShelf("sale", 4, locale),
+    getTestimonials(locale),
+  ]);
+
+  const sameAs = Object.values(brand.social).filter((url): url is string => Boolean(url));
+
   return (
-    <div className="mx-auto max-w-5xl px-6 py-16">
-      <Badge variant="secondary" className="mb-6">
-        Theme preview - replaced in Step 3
-      </Badge>
+    <div className="pb-4">
+      <JsonLd
+        data={buildWebsiteJsonLd({
+          baseUrl: siteUrl(),
+          name: brand.name,
+          logoUrl: brand.logo.src ? `${siteUrl()}${brand.logo.src}` : undefined,
+          sameAs,
+        })}
+      />
 
-      <h1 className="text-5xl font-semibold sm:text-6xl">{brand.name}</h1>
-      <p className="mt-4 max-w-xl text-lg text-muted-foreground">{brand.tagline}</p>
-
-      <div className="mt-8 flex flex-wrap gap-3">
-        <Button size="lg" className="bg-primary hover:bg-primary-hover">
-          <ShoppingBag className="mr-2 size-4" /> Shop now
-        </Button>
-        <Button size="lg" variant="outline">
-          View lookbook
-        </Button>
-      </div>
-
-      <div className="mt-14 grid gap-6 sm:grid-cols-3">
-        <Card className="shadow-soft">
-          <CardContent className="space-y-2 p-6">
-            <div className="aspect-[4/5] rounded-md bg-secondary" />
-            <p className="font-medium">Sample linen shirt</p> 
-            <div className="flex items-baseline gap-2">
-              <span className="font-semibold text-primary">{formatMoney(38000)}</span>
-              <span className="text-sm text-muted-foreground line-through">
-                {formatMoney(45000)}
-              </span>
-            </div>
-            <Badge className="bg-success text-white">In stock</Badge>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-soft">
-          <CardContent className="space-y-2 p-6">
-            <Truck className="size-6 text-primary" />
-            <h2 className="text-2xl font-semibold">Fast delivery</h2>
-            <p className="text-sm text-muted-foreground">
-              Our own delivery team and trusted couriers.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-soft">
-          <CardContent className="space-y-3 p-6">
-            <ShieldCheck className="size-6 text-primary" />
-            <div className="space-y-1.5">
-              <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" placeholder="+95 9 …" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <p lang="my" className="mt-12 text-muted-foreground">
-        မြန်မာဘာသာ စာလုံးပြသမှု စမ်းသပ်ချက် - Burmese font test
-      </p>
+      <HeroBanner banner={banners.hero[0] ?? null} />
+      <CategoryTiles categories={tree} />
+      <ProductShelf id="featured" title={t("featuredTitle")} products={featured} viewAllHref="/products" />
+      <PromoBanners banners={banners.promo} />
+      <ProductShelf id="new" title={t("newTitle")} products={newest} viewAllHref="/products?sort=newest" />
+      <ProductShelf id="best" title={t("bestTitle")} products={best} viewAllHref="/products?sort=popular" />
+      {/* Offers have no "view all" link yet: the listing has no "on sale" filter */}
+      <ProductShelf id="sale" title={t("saleTitle")} products={sale} />
+      <Testimonials items={testimonials} />
+      <NewsletterSection />
     </div>
   );
 }

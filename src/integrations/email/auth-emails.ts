@@ -50,3 +50,6 @@ export async function sendTwoFactorCode(to: Recipient, code: string): Promise<vo
   });
   await sendEmail({ to: to.email, subject, text, html });
 }
+
+export const sendNewsletterConfirmation = (to: Recipient, url: string) =>
+  dispatch("newsletter-confirm", to, url);

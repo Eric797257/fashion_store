@@ -4,7 +4,8 @@ export type AuthEmailKind =
   | "verify-email"
   | "reset-password"
   | "password-changed"
-  | "existing-account";
+  | "existing-account"
+  | "newsletter-confirm";
 export type EmailLocale = "en" | "my";
 
 interface Copy {
@@ -46,6 +47,13 @@ const COPY: Record<EmailLocale, Record<AuthEmailKind, Copy>> = {
       button: "Sign in",
       note: "If this wasn't you, you can safely ignore this email.",
     },
+    "newsletter-confirm": {
+      subject: "Confirm your subscription",
+      heading: "Confirm your subscription",
+      body: "Please confirm that you want to receive news and offers from {brand}.",
+      button: "Confirm subscription",
+      note: "If you didn't ask for this, ignore this email and you won't be subscribed.",
+    },
   },
   my: {
     "verify-email": {
@@ -75,6 +83,13 @@ const COPY: Record<EmailLocale, Record<AuthEmailKind, Copy>> = {
       body: "မင်္ဂလာပါ {name}၊ ဤအီးမေးလ်ဖြင့် အကောင့်ဖွင့်ရန် ကြိုးစားခဲ့သော်လည်း သင့်တွင် {brand} အကောင့် ရှိပြီးဖြစ်ပါသည်။ သင်ကိုယ်တိုင်ဖြစ်ပါက အကောင့်ဝင်ပါ၊ စကားဝှက်မေ့ပါက ပြန်လည်သတ်မှတ်ပါ။",
       button: "အကောင့်ဝင်ရန်",
       note: "သင်မဟုတ်ပါက ဤအီးမေးလ်ကို လျစ်လျူရှုနိုင်ပါသည်။",
+    },
+    "newsletter-confirm": {
+      subject: "စာရင်းသွင်းမှုကို အတည်ပြုပါ",
+      heading: "စာရင်းသွင်းမှုကို အတည်ပြုရန်",
+      body: "{brand} ၏ သတင်းများနှင့် ပရိုမိုးရှင်းများကို လက်ခံလိုကြောင်း အတည်ပြုပေးပါ။",
+      button: "စာရင်းသွင်းမှုကို အတည်ပြုရန်",
+      note: "သင် မတောင်းဆိုခဲ့ပါက ဤအီးမေးလ်ကို လျစ်လျူရှုနိုင်ပြီး စာရင်းသွင်းခြင်း မရှိပါ။",
     },
   },
 };

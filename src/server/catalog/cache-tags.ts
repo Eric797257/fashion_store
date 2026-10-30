@@ -4,6 +4,9 @@ export const CACHE_TAGS = {
   categories: "categories",
   reviews: "reviews",
   settings: "settings",
+  banners: "banners",
+  testimonials: "testimonials",
+  content: "content",
 } as const;
 
 export const productTag = (id: string) => `product-${id}`;

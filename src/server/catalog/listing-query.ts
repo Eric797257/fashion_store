@@ -31,6 +31,7 @@ const P = {
   categoryId: col("p", "category_id"),
   brandId: col("p", "brand_id"),
   audience: col("p", "audience"),
+  isFeatured: col("p", "is_featured"),
   price: col("p", "price"),
   salePrice: col("p", "sale_price"),
   saleStartsAt: col("p", "sale_starts_at"),
@@ -270,10 +271,10 @@ async function queryFacets(
   const hexRows =
     names.length > 0
       ? await db.productVariant.findMany({
-          where: { color: { in: names }, colorHex: { not: null } },
-          distinct: ["color"],
-          select: { color: true, colorHex: true },
-        })
+        where: { color: { in: names }, colorHex: { not: null } },
+        distinct: ["color"],
+        select: { color: true, colorHex: true },
+      })
       : [];
   const hexByColor = new Map(hexRows.map((r) => [r.color, r.colorHex]));
 
@@ -333,4 +334,50 @@ export async function queryProductListing(
   });
 
   return { items, total, page, pageSize: LISTING_PAGE_SIZE, totalPages, facets };
+}
+
+// Homepage shelves
+
+export type Shelf = "featured" | "new" | "best" | "sale";
+
+const SALE_ACTIVE = Prisma.sql`(${P.salePrice} IS NOT NULL AND ${P.salePrice} < ${P.price} AND (${P.saleStartsAt} IS NULL OR ${P.saleStartsAt} <= NOW()) AND (${P.saleEndsAt} IS NULL OR ${P.saleEndsAt} >= NOW()))`;
+
+const SHELF_WHERE: Record<Shelf, Prisma.Sql> = {
+  featured: Prisma.sql`${P.isFeatured} = true`,
+  new: Prisma.sql`TRUE`,
+  best: Prisma.sql`${P.soldCount} > 0`, // an honest "best seller" has actually sold
+  sale: SALE_ACTIVE,
+};
+
+const SHELF_ORDER: Record<Shelf, Prisma.Sql> = {
+  featured: Prisma.sql`${P.soldCount} DESC, ${P.createdAt} DESC`,
+  new: ORDER_BY.newest,
+  best: Prisma.sql`${P.soldCount} DESC, ${P.createdAt} DESC`,
+  sale: Prisma.sql`(1 - ${EFFECTIVE_PRICE} / NULLIF(${P.price}, 0)) DESC, ${P.soldCount} DESC`,
+};
+
+/** A row of products for the homepage. Sold-out products are never shown. */
+export async function queryShelf(
+  shelf: Shelf,
+  limit: number,
+  locale: CatalogLocale,
+): Promise<ProductCardData[]> {
+  const idRows = await db.$queryRaw<{ id: string }[]>`
+    SELECT ${P.id} AS id FROM "products" p
+    WHERE ${P.status} = 'ACTIVE'
+      AND ${SHELF_WHERE[shelf]}
+      AND EXISTS (SELECT 1 FROM "product_variants" v WHERE ${V.productId} = ${P.id} AND ${V.isActive} = true AND ${V.stockOnHand} - ${V.stockReserved} > 0)
+    ORDER BY ${SHELF_ORDER[shelf]}, ${P.id} ASC
+    LIMIT ${limit}`;
+
+  const ids = idRows.map((r) => r.id);
+  if (ids.length === 0) return [];
+
+  const rows = await fetchRows(ids);
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const now = new Date();
+  return ids.flatMap((id) => {
+    const row = byId.get(id);
+    return row ? [toCard(row, locale, now)] : [];
+  });
 }

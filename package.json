@@ -32,7 +32,8 @@
     "product:check": "tsx scripts/product-check.ts",
     "typecheck": "tsc --noEmit",
     "search:check": "tsx scripts/search-check.ts",
-    "wishlist:check": "tsx scripts/wishlist-check.ts"
+    "wishlist:check": "tsx scripts/wishlist-check.ts",
+    "home:check": "tsx scripts/home-check.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

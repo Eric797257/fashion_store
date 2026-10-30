@@ -1189,10 +1189,6 @@ model StoreSettings {
     supportPhone           String? @map("support_phone")
     supportEmail           String? @map("support_email")
     manualTransferAccounts Json?   @map("manual_transfer_accounts") // [{ channel, accountName, accountNumber }]
-    shippingPolicy         String? @map("shipping_policy") @db.Text
-    returnPolicy           String? @map("return_policy") @db.Text
-    privacyPolicy          String? @map("privacy_policy") @db.Text
-    terms                  String? @db.Text
 
     createdAt DateTime @default(now()) @map("created_at")
     updatedAt DateTime @updatedAt @map("updated_at")
@@ -1201,11 +1197,95 @@ model StoreSettings {
 }
 
 model RateLimit {
-  id          String @id
-  key         String
-  count       Int
-  lastRequest BigInt
+    id          String @id
+    key         String
+    count       Int
+    lastRequest BigInt
 
-  @@unique([key])
-  @@map("rateLimit")
+    @@unique([key])
+    @@map("rateLimit")
+}
+
+// Homepage content, content pages, newsletter
+
+enum BannerPlacement {
+    HERO
+    PROMO
+}
+
+model Banner {
+    id         String          @id @default(cuid())
+    placement  BannerPlacement
+    title      String
+    titleMy    String?         @map("title_my")
+    subtitle   String?
+    subtitleMy String?         @map("subtitle_my")
+    ctaLabel   String?         @map("cta_label")
+    ctaLabelMy String?         @map("cta_label_my")
+    ctaHref    String          @map("cta_href") // a path inside this site, e.g. "/products"
+    imageUrl   String?         @map("image_url")
+    imageAlt   String?         @map("image_alt")
+    sortOrder  Int             @default(0) @map("sort_order")
+    isActive   Boolean         @default(true) @map("is_active")
+    startsAt   DateTime?       @map("starts_at")
+    endsAt     DateTime?       @map("ends_at")
+    createdAt  DateTime        @default(now()) @map("created_at")
+    updatedAt  DateTime        @updatedAt @map("updated_at")
+
+    @@index([placement, isActive, sortOrder])
+    @@map("banners")
+}
+
+model Testimonial {
+    id             String   @id @default(cuid())
+    authorName     String   @map("author_name")
+    authorLocation String?  @map("author_location")
+    quote          String   @db.Text
+    quoteMy        String?  @map("quote_my") @db.Text
+    rating         Int      @default(5)
+    isActive       Boolean  @default(true) @map("is_active")
+    sortOrder      Int      @default(0) @map("sort_order")
+    createdAt      DateTime @default(now()) @map("created_at")
+    updatedAt      DateTime @updatedAt @map("updated_at")
+
+    @@index([isActive, sortOrder])
+    @@map("testimonials")
+}
+
+model ContentPage {
+    id        String   @id @default(cuid())
+    slug      String   @unique // about, shipping-policy, return-policy, privacy-policy, terms, contact
+    title     String
+    titleMy   String?  @map("title_my")
+    body      String   @db.Text
+    bodyMy    String?  @map("body_my") @db.Text
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    @@map("content_pages")
+}
+
+enum NewsletterStatus {
+    PENDING
+    SUBSCRIBED
+    UNSUBSCRIBED
+}
+
+model NewsletterSubscriber {
+    id               String           @id @default(cuid())
+    email            String           @unique // always lowercase (CHECK in migration)
+    status           NewsletterStatus @default(PENDING)
+    locale           String           @default("en")
+    confirmTokenHash String?          @map("confirm_token_hash") // SHA-256 of the emailed token
+    confirmExpiresAt DateTime?        @map("confirm_expires_at")
+    confirmSentAt    DateTime?        @map("confirm_sent_at")
+    unsubscribeToken String           @unique @map("unsubscribe_token")
+    confirmedAt      DateTime?        @map("confirmed_at")
+    unsubscribedAt   DateTime?        @map("unsubscribed_at")
+    createdAt        DateTime         @default(now()) @map("created_at")
+    updatedAt        DateTime         @updatedAt @map("updated_at")
+
+    @@index([status])
+    @@index([confirmTokenHash])
+    @@map("newsletter_subscribers")
 }

@@ -68,3 +68,37 @@ export function buildProductJsonLd(input: StructuredDataInput): Record<string, u
 export function serializeJsonLd(data: Record<string, unknown>): string {
   return JSON.stringify(data).replace(/</g, "\\u003c");
 }
+
+export function buildWebsiteJsonLd(input: {
+  baseUrl: string;
+  name: string;
+  logoUrl?: string;
+  sameAs: string[];
+}): Record<string, unknown> {
+  const org = `${input.baseUrl}/#organization`;
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": org,
+        name: input.name,
+        url: input.baseUrl,
+        ...(input.logoUrl ? { logo: input.logoUrl } : {}),
+        ...(input.sameAs.length > 0 ? { sameAs: input.sameAs } : {}),
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${input.baseUrl}/#website`,
+        url: input.baseUrl,
+        name: input.name,
+        publisher: { "@id": org },
+        potentialAction: {
+          "@type": "SearchAction",
+          target: { "@type": "EntryPoint", urlTemplate: `${input.baseUrl}/search?q={search_term_string}` },
+          "query-input": "required name=search_term_string",
+        },
+      },
+    ],
+  };
+}

@@ -4,6 +4,7 @@ import { PrismaClient } from "../src/generated/prisma/client";
 import { seedRbac } from "./seeds/rbac";
 import { seedSettings } from "./seeds/settings";
 import { seedSample } from "./seeds/sample";
+import { seedHomeSample } from "./seeds/home-sample";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
@@ -20,6 +21,7 @@ async function main() {
       throw new Error("Refusing to seed sample data when NODE_ENV=production");
     }
     await seedSample(prisma);
+    await seedHomeSample(prisma);
     console.log("✅ Sample fashion data seeded (all slugs/SKUs start with sample-/SAMPLE-)");
   } else {
     console.log("ℹ️  Sample data skipped (set SEED_SAMPLE_DATA=true to include it)");
