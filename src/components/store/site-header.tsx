@@ -8,6 +8,7 @@ import { SearchBox } from "./search-box";
 import { cn } from "@/lib/utils";
 import { getNavCategories } from "@/server/queries/categories";
 import { getWishlistState } from "@/server/wishlist/queries";
+import { getCartCount } from "@/server/cart/queries";
 
 function IconLink({
     href,
@@ -46,8 +47,10 @@ export async function SiteHeader() {
     const categories = await getNavCategories(locale);
 
     // The cart count is wired in Step 4. Until then its badge stays hidden instead of showing a fake number.
-    const cartCount = 0;
-    const { productIds: wishlistIds } = await getWishlistState();
+    const [{ productIds: wishlistIds }, cartCount] = await Promise.all([
+        getWishlistState(),
+        getCartCount(),
+    ]);
     const wishlistCount = wishlistIds.length;
 
     return (

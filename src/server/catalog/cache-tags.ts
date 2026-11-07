@@ -7,6 +7,7 @@ export const CACHE_TAGS = {
   banners: "banners",
   testimonials: "testimonials",
   content: "content",
+  shipping: "shipping",
 } as const;
 
 export const productTag = (id: string) => `product-${id}`;

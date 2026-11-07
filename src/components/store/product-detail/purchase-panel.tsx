@@ -2,37 +2,78 @@
 
 import { Minus, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import { useSelection } from "@/components/store/product-detail/selection-context";
 import { Button } from "@/components/ui/button";
 import { CART_ENABLED, MAX_QUANTITY_PER_LINE } from "@/config/features";
 import { colorHasStock, findVariant } from "@/lib/variant-selection";
 import { cn } from "@/lib/utils";
+import { addToCart } from "@/server/cart/actions";
 
 // Options named like this mean "this product has no real choice" and are not shown as pickers
 const PLACEHOLDER_OPTIONS = new Set(["Default", "Free Size"]);
 
+const ADD_ERROR = {
+  INVALID: "addFailed",
+  NOT_FOUND: "notAvailableNow",
+  OUT_OF_STOCK: "outOfStock",
+  AT_LIMIT: "atLimit",
+  RATE_LIMITED: "cartRateLimited",
+  FAILED: "addFailed",
+} as const;
+
 export function PurchasePanel() {
   const t = useTranslations("Product");
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const { variants, colors, sizes, color, size, selected, selectColor, selectSize } = useSelection();
   const [requestedQty, setRequestedQty] = useState(1);
+  const [feedback, setFeedback] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
 
   const max = selected ? Math.min(selected.available, MAX_QUANTITY_PER_LINE) : 0;
   const quantity = max === 0 ? 1 : Math.min(Math.max(1, requestedQty), max);
-  const canBuy = CART_ENABLED && selected !== null && selected.available > 0;
+  const canBuy = CART_ENABLED && selected !== null && selected.available > 0 && !pending;
 
   const showColors = !(colors.length === 1 && PLACEHOLDER_OPTIONS.has(colors[0]?.name ?? ""));
   const showSizes = !(sizes.length === 1 && PLACEHOLDER_OPTIONS.has(sizes[0] ?? ""));
 
-  const stockText = !selected
-    ? t("outOfStock")
-    : selected.available === 0
+  const stockText =
+    !selected || selected.available === 0
       ? t("outOfStock")
       : selected.low
         ? t("onlyLeft", { count: selected.available })
         : t("inStock");
   const stockClass =
     !selected || selected.available === 0 || selected.low ? "text-destructive" : "text-success";
+
+  function add(thenOpenCart: boolean) {
+    if (!selected) return;
+    const variantId = selected.id;
+    setFeedback(null);
+
+    startTransition(async () => {
+      // The server decides what is allowed: the price and stock are never taken from this page
+      const result = await addToCart(variantId, quantity);
+
+      if (!result.ok) {
+        setFeedback({ kind: "error", text: t(ADD_ERROR[result.error]) });
+        if (result.error === "OUT_OF_STOCK" || result.error === "NOT_FOUND") router.refresh();
+        return;
+      }
+
+      router.refresh(); // the cart count in the header
+      if (thenOpenCart) {
+        router.push("/cart"); // becomes "/checkout" in Step 4.2
+        return;
+      }
+      setFeedback({
+        kind: "ok",
+        text: result.capped ? t("addedCapped", { count: result.quantity }) : t("addedToCart"),
+      });
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -117,7 +158,11 @@ export function PurchasePanel() {
         <p className="mb-2 text-sm font-medium" id="quantity-label">
           {t("quantity")}
         </p>
-        <div className="inline-flex items-center rounded-md border border-border" role="group" aria-labelledby="quantity-label">
+        <div
+          className="inline-flex items-center rounded-md border border-border"
+          role="group"
+          aria-labelledby="quantity-label"
+        >
           <button
             type="button"
             onClick={() => setRequestedQty(Math.max(1, quantity - 1))}
@@ -147,19 +192,38 @@ export function PurchasePanel() {
 
       <div className="space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row">
-          {/* Both buttons stay off until the cart exists (Step 4). They never fake an order. */}
           <Button
             type="button"
             disabled={!canBuy}
+            onClick={() => add(false)}
             className="h-12 flex-1 bg-primary text-primary-foreground hover:bg-primary-hover"
           >
             {t("addToCart")}
           </Button>
-          <Button type="button" variant="outline" disabled={!canBuy} className="h-12 flex-1">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!canBuy}
+            onClick={() => add(true)}
+            className="h-12 flex-1"
+          >
             {t("buyNow")}
           </Button>
         </div>
+
         {!CART_ENABLED && <p className="text-sm text-muted-foreground">{t("orderingSoon")}</p>}
+
+        <div role="status" aria-live="polite" className="min-h-5 text-sm">
+          {feedback?.kind === "ok" && (
+            <p className="text-success">
+              {feedback.text}{" "}
+              <Link href="/cart" className="font-medium underline">
+                {t("viewCart")}
+              </Link>
+            </p>
+          )}
+          {feedback?.kind === "error" && <p className="text-destructive">{feedback.text}</p>}
+        </div>
       </div>
     </div>
   );
